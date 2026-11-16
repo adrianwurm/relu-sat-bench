@@ -1,0 +1,8 @@
+# Store and check out text files with Unix line endings (LF) on every system, so that
+# diffs stay clean when files are edited on Windows and on Linux.
+* text=auto eol=lf
+
+# Binary formats: never convert, never diff as text.
+*.onnx binary
+*.png binary
+*.pdf binary

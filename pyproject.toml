@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]  # 77: license given as an SPDX expression (PEP 639)
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "relu-sat-bench"
+version = "0.1.0"
+description = "Provably hard neural network verification instances with known answers, generated from SAT"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "Adrian Wurm" }]
+dependencies = [
+    "numpy>=1.24",
+    "python-sat>=1.8.dev0",  # SAT solvers (CaDiCaL, Glucose, ...) for the reference answers
+    "onnx>=1.14",            # writing the networks
+    "onnxruntime>=1.16",     # checking every exported network
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+report = ["matplotlib>=3.7"]  # figures of the evaluation
+
+[project.scripts]
+relu-sat-generate = "relu_sat_bench.generate:main"
+relu-sat-export = "relu_sat_bench.export:main"
+relu-sat-run = "relu_sat_bench.run:main"
+relu-sat-evaluate = "relu_sat_bench.evaluate:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Lets `pytest` find the package without installing it first.
+pythonpath = ["src"]

@@ -1,0 +1,15 @@
+Benchmark data of relu-sat-bench
+
+Copyright (c) 2026 Adrian Wurm
+
+The benchmark data are licensed under the Creative Commons Attribution 4.0 International License
+(CC BY 4.0). To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/
+
+"Benchmark data" means the files this code generates and the results of running verifiers on them:
+the instance folders (ONNX networks, VNN-LIB properties, CNF formulas, solutions, metadata and
+formulas.csv), the result files of the verifier runs, and the tables and figures in report/.
+
+The code that generates them is licensed separately under the MIT License (see LICENSE).
+
+Formulas taken from other sources keep their own license. In particular, the formulas of the
+VNN-COMP 2025 benchmark sat_relu (NeuroCodeBench 2.0) are not covered by this license.

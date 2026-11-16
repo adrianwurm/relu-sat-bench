@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+.ipynb_checkpoints/
+.DS_Store
+instances/
+benchmark/
+.idea/
+# Gurobi license files are personal and must never be committed.
+*.lic
