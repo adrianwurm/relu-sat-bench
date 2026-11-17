@@ -47,7 +47,7 @@ from pathlib import Path
 from relu_sat_bench.cnf import CNF
 from relu_sat_bench.export import METADATA_CSV
 from relu_sat_bench.generate import FORMULAS_CSV, read_rows
-from relu_sat_bench.reduction import decode_assignment, reduce_cnf
+from relu_sat_bench.reduction import ENCODINGS, decode_assignment, reduce_cnf
 from relu_sat_bench.tools import TOOLS
 
 RESULT_COLUMNS = [
@@ -144,20 +144,25 @@ def check_answer(status: str, values: dict[str, float], expected: str, cnf: CNF,
         # A sat answer without (complete) counterexample cannot be checked.
         return Check("wrong" if expected == "unsat" else "sat-no-cex", "missing")
     instance = reduce_cnf(cnf, encoding)
-    output = float(instance.network.forward(xs)[0])  # exact network, float64
+    outputs = [float(v) for v in instance.network.forward(xs)]  # exact network, float64
     problems = []
     if any(x < -INPUT_TOLERANCE or x > 1 + INPUT_TOLERANCE for x in xs):
         problems.append("input outside the box")
-    if output < float(instance.threshold) - OUTPUT_TOLERANCE:
-        problems.append(f"output {output:g} below threshold {float(instance.threshold):g}")
+    for c in instance.unsafe:
+        if not c.holds(outputs[c.output], OUTPUT_TOLERANCE):
+            if len(instance.unsafe) == 1:
+                problems.append(f"output {outputs[0]:g} below threshold {float(c.rhs):g}")
+            else:
+                problems.append(f"Y_{c.output} = {outputs[c.output]:g} violates {c.op} {float(c.rhs):g}")
     if not cnf.is_satisfied_by(decode_assignment([min(max(x, 0.0), 1.0) for x in xs])):
         problems.append("does not decode to a satisfying assignment")
+    shown = ";".join(f"{v:.9g}" for v in outputs)
     if problems:
-        return Check("wrong", "invalid: " + "; ".join(problems), f"{output:.9g}")
+        return Check("wrong", "invalid: " + "; ".join(problems), shown)
     if expected == "unsat":
         # A valid counterexample proves the formula satisfiable: then OUR reference is wrong.
-        return Check("reference-wrong", "valid", f"{output:.9g}")
-    return Check("correct", "valid", f"{output:.9g}")
+        return Check("reference-wrong", "valid", shown)
+    return Check("correct", "valid", shown)
 
 
 # ------------------------------------------------------------------- running
@@ -271,7 +276,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"{args.tool}: {len(drop)} instances will be run again")
 
     instances = load_instances(bench)
-    if args.tool.startswith("abcrown-mip") and any(inst.get("vnnlib_rhs") != "0.0" for inst in instances):
+    if args.tool.startswith("abcrown-mip") and any(
+            inst.get("encoding", "compact") in ENCODINGS and inst.get("output_constraints", "1") == "1"
+            and inst.get("vnnlib_rhs") != "0.0" for inst in instances):
         print("WARNING: alpha,beta-CROWN's MIP mode compares single-constraint properties with 0 instead of "
               "their right-hand side, so it fails on these instances. Use a benchmark built with "
               "--threshold-in-network (see the README).", flush=True)

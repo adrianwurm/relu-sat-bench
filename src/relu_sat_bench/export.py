@@ -7,9 +7,12 @@ folder:
   Each layer is a ``Gemm`` node (``y = x W^T + b``), followed by ``Relu`` for hidden
   layers. Input ``X`` has shape [1, n], output ``Y`` has shape [1, 1]; weights are
   float32. All weights and biases are small integers, so float32 represents them exactly.
-* ``vnnlib/<id>.vnnlib``: the property, shared by both encodings. It describes the
+* ``vnnlib/<id>.vnnlib``: the property, shared by compact and paper. It describes the
   *unsafe* set ``{x in [0, 1]^n : Y_0 >= m - 1/2}``; a verifier answers "sat"
   (counterexample found) iff the formula is satisfiable.
+* for the neurocodebench encoding (``onnx/<id>-neurocodebench.onnx``, output ``Y`` [1, 2]) its
+  own property ``vnnlib/<id>-neurocodebench.vnnlib`` with the unsafe set
+  ``Y_0 >= 1 and Y_1 <= 0``, as in the VNN-COMP 2025 benchmark ``sat_relu``.
 * ``instances.csv``: the VNN-COMP instance list, one line ``onnx,vnnlib,timeout`` per
   instance, without a header.
 * ``metadata.csv``: for every instance the expected answer and sizes. The expected answer
@@ -20,6 +23,12 @@ lowered by the threshold ``m - 1/2``, so the network computes ``N(x) - (m - 1/2)
 unsafe set becomes ``Y_0 >= 0``. Same formulas, same file names, same answers. It exists as a
 workaround for alpha,beta-CROWN's MIP mode, which compares single-constraint properties with 0
 instead of their right-hand side (see the README).
+
+``two_constraints=True`` writes another equivalent variant: the same networks, and the unsafe set
+written as ``m - 1/2 <= Y_0 <= m``. The upper bound holds on the whole box (``N(x) <= m``), so the set
+is the same, but the property now has two constraints. alpha,beta-CROWN's MIP mode handles such a
+property as a conjunction ("AND-style": the constraints are added to the MIP), not by maximizing the
+output ("OR-style"). The variant tests how much that changes (step 5b of the walkthrough).
 
 File names: with ``names="descriptive"`` (default) the files are named after the formula
 (``pigeonhole-h5.onnx``). The family name reveals the answer of the constructed families, so
@@ -52,7 +61,13 @@ import numpy as np
 from relu_sat_bench.cnf import CNF
 from relu_sat_bench.generate import FORMULAS_CSV, read_rows
 from relu_sat_bench.network import AffineLayer, ReluNetwork
-from relu_sat_bench.reduction import ENCODINGS, VerificationInstance, encode_assignment, reduce_cnf
+from relu_sat_bench.reduction import (
+    ALL_ENCODINGS,
+    NEUROCODEBENCH,
+    VerificationInstance,
+    encode_assignment,
+    reduce_cnf,
+)
 
 OPSET = 13       # widely supported; the verification tools often ship older onnx/onnxruntime
 IR_VERSION = 8   # the IR version that belongs to opsets 13-17
@@ -65,6 +80,7 @@ METADATA_COLUMNS = [
     "num_inputs", "num_relus", "num_clauses",
     "threshold",                  # m - 1/2: the threshold on N(x) = number of satisfied clauses
     "vnnlib_rhs",                 # the right-hand side in the VNN-LIB file: threshold, or 0 (see above)
+    "output_constraints",         # constraints of the unsafe set in the VNN-LIB file: 1, or 2 (see above)
     "sat_solver_seconds",         # from formulas.csv, for comparing with the verifiers
 ]
 
@@ -126,13 +142,18 @@ def to_onnx(network: ReluNetwork, name: str = "relu_sat_bench"):
     return model
 
 
-def run_onnx(model_bytes: bytes, points: np.ndarray) -> np.ndarray:
-    """Evaluate the ONNX model with onnxruntime on each row of ``points``; returns Y_0 per row."""
+def run_onnx(model_bytes: bytes, points: np.ndarray, output: int | None = 0) -> np.ndarray:
+    """Evaluate the ONNX model with onnxruntime on each row of ``points``.
+
+    Returns ``Y_output`` per row, or with ``output=None`` all outputs (shape: rows x outputs).
+    """
     import onnxruntime
 
     session = onnxruntime.InferenceSession(model_bytes, providers=["CPUExecutionProvider"])
+    name = session.get_inputs()[0].name
     rows = np.asarray(points, dtype=np.float32).reshape(-1, 1, session.get_inputs()[0].shape[1])
-    return np.array([session.run(None, {"X": row})[0][0, 0] for row in rows], dtype=np.float64)
+    values = np.array([session.run(None, {name: row})[0][0] for row in rows], dtype=np.float64)
+    return values if output is None else values[:, output]
 
 
 def check_onnx(
@@ -155,6 +176,8 @@ def check_onnx(
       counterexample in float32 too;
     * random points in the box: close to the exact value (float32 rounding only).
     """
+    if instance.encoding == NEUROCODEBENCH:
+        return _check_onnx_neurocodebench(model_bytes, instance, witness, num_random, seed)
     cnf, n = instance.cnf, instance.num_inputs
     rng = random.Random(seed)
     boolean = [tuple(rng.random() < 0.5 for _ in range(n)) for _ in range(num_random)]
@@ -174,6 +197,34 @@ def check_onnx(
         raise ExportCheckFailed("random points: onnxruntime deviates from the exact network")
 
 
+def _check_onnx_neurocodebench(model_bytes: bytes, instance: VerificationInstance,
+                               witness: Sequence[bool] | None, num_random: int, seed: int) -> None:
+    """The checks of :func:`check_onnx` for the two outputs of the neurocodebench encoding.
+
+    * 0/1 points: ``Y_0 = 1 - (number of falsified clauses)`` and ``Y_1 = 0``, exactly;
+    * the center point: both outputs exactly as in the exact network (halves);
+    * a known satisfying assignment: ``Y_0 >= 1`` and ``Y_1 <= 0`` in float32 too;
+    * random points in the box: close to the exact network.
+    """
+    cnf, n, m = instance.cnf, instance.num_inputs, instance.cnf.num_clauses
+    rng = random.Random(seed)
+    boolean = [tuple(rng.random() < 0.5 for _ in range(n)) for _ in range(num_random)]
+    if witness is not None:
+        boolean.append(tuple(witness))
+    points = [encode_assignment(a) for a in boolean] + [np.full(n, 0.5)]
+    got = run_onnx(model_bytes, np.array(points), output=None)
+    expected = [[float(1 - (m - cnf.count_satisfied(a))), 0.0] for a in boolean]
+    expected.append([float(v) for v in instance.network.forward([Fraction(1, 2)] * n, exact=True)])
+    if got.tolist() != expected:
+        raise ExportCheckFailed(f"0/1 points: onnxruntime gives {got.tolist()}, expected {expected}")
+    if witness is not None and not all(c.holds(got[len(boolean) - 1][c.output]) for c in instance.unsafe):
+        raise ExportCheckFailed("the satisfying assignment is not a counterexample in float32")
+
+    box = np.array([[rng.random() for _ in range(n)] for _ in range(num_random)])
+    if not np.allclose(run_onnx(model_bytes, box, output=None), instance.network.forward(box), rtol=1e-5, atol=1e-4):
+        raise ExportCheckFailed("random points: onnxruntime deviates from the exact network")
+
+
 # ------------------------------------------------------------------- VNN-LIB
 
 
@@ -184,13 +235,22 @@ def _decimal(value: Fraction) -> str:
     return f"{float(value):.1f}"
 
 
-def vnnlib_text(instance: VerificationInstance, name: str, threshold_in_network: bool = False) -> str:
+def vnnlib_text(instance: VerificationInstance, name: str, threshold_in_network: bool = False,
+                two_constraints: bool = False) -> str:
     """The property in VNN-LIB: input box and unsafe output set ``Y_0 >= m - 1/2``.
 
     With ``threshold_in_network`` the unsafe set is ``Y_0 >= 0``, for networks whose output
-    is already lowered by ``m - 1/2`` (see :func:`shift_output`).
+    is already lowered by ``m - 1/2`` (see :func:`shift_output`). With ``two_constraints`` the
+    unsafe set is ``m - 1/2 <= Y_0 <= m``: the same set, because ``N(x) <= m`` holds on the whole
+    box, but written as two constraints (see the module docstring).
     """
     n, m = instance.num_inputs, instance.cnf.num_clauses
+    if instance.encoding == NEUROCODEBENCH:
+        if threshold_in_network or two_constraints:
+            raise ValueError("threshold_in_network and two_constraints apply only to the single-output encodings")
+        return _vnnlib_neurocodebench(instance, name)
+    if threshold_in_network and two_constraints:
+        raise ValueError("choose threshold_in_network or two_constraints, not both")
     if threshold_in_network:
         unsafe = (f"; unsafe set: Y_0 >= 0, where the network outputs (number of satisfied clauses) - ({m} - 1/2).\n"
                   f"; It is reachable iff the CNF formula with {m} clauses is satisfiable;")
@@ -210,8 +270,33 @@ def vnnlib_text(instance: VerificationInstance, name: str, threshold_in_network:
     lo, hi = _decimal(instance.input_lower), _decimal(instance.input_upper)
     for i in range(n):
         lines += [f"(assert (>= X_{i} {lo}))", f"(assert (<= X_{i} {hi}))"]
-    lines += ["", "; unsafe output set", f"(assert (>= Y_0 {_decimal(rhs)}))", ""]
-    return "\n".join(lines)
+    lines += ["", "; unsafe output set", f"(assert (>= Y_0 {_decimal(rhs)}))"]
+    if two_constraints:
+        lines += [f"; always true on the box (N(x) <= {m}); written so that the unsafe set has two constraints",
+                  f"(assert (<= Y_0 {m}.0))"]
+    return "\n".join(lines + [""])
+
+
+def _vnnlib_neurocodebench(instance: VerificationInstance, name: str) -> str:
+    """The property of the neurocodebench encoding: ``Y_0 >= 1 and Y_1 <= 0`` (as in ``sat_relu``)."""
+    n, m = instance.num_inputs, instance.cnf.num_clauses
+    lines = [
+        f"; relu-sat-bench instance {name}, neurocodebench encoding (the construction of the VNN-COMP 2025",
+        "; benchmark sat_relu, NeuroCodeBench 2.0, Manino et al.)",
+        f"; network input: one variable per propositional variable ({n}), output: two values",
+        "; Y_0 = 1 - (number of falsified clauses at a 0/1 point), Y_1 = sum_i min(x_i, 1 - x_i).",
+        f"; unsafe set: Y_0 >= 1 and Y_1 <= 0. It is reachable iff the CNF formula with {m} clauses is",
+        "; satisfiable; Y_1 <= 0 forces every input to be exactly 0 or 1.",
+        "",
+    ]
+    lines += [f"(declare-const X_{i} Real)" for i in range(n)]
+    lines += ["(declare-const Y_0 Real)", "(declare-const Y_1 Real)", "", "; input box [0, 1]^n"]
+    lo, hi = _decimal(instance.input_lower), _decimal(instance.input_upper)
+    for i in range(n):
+        lines += [f"(assert (>= X_{i} {lo}))", f"(assert (<= X_{i} {hi}))"]
+    lines += ["", "; unsafe output set"]
+    lines += [f"(assert ({c.op} Y_{c.output} {_decimal(c.rhs)}))" for c in instance.unsafe]
+    return "\n".join(lines + [""])
 
 
 # ------------------------------------------------------------------- export
@@ -226,6 +311,11 @@ def _read_solution(path: Path, num_vars: int) -> tuple[bool, ...]:
 
 def onnx_name(name: str, encoding: str) -> str:
     return f"{name}.onnx" if encoding == "compact" else f"{name}-{encoding}.onnx"
+
+
+def vnnlib_name(name: str, encoding: str) -> str:
+    """compact and paper share one property; neurocodebench has its own."""
+    return f"{name}-{NEUROCODEBENCH}.vnnlib" if encoding == NEUROCODEBENCH else f"{name}.vnnlib"
 
 
 NAMING = ("descriptive", "neutral")
@@ -254,17 +344,23 @@ def export(
     names: str = "descriptive",
     name_seed: int = 0,
     threshold_in_network: bool = False,
+    two_constraints: bool = False,
 ) -> list[dict]:
     """Export every formula with a known answer in ``folder/formulas.csv``.
 
     ``threshold_in_network``: write the variant with the threshold moved into the network
     (output ``N(x) - (m - 1/2)``, unsafe set ``Y_0 >= 0``); see the module docstring.
+    ``two_constraints``: write the unsafe set as ``m - 1/2 <= Y_0 <= m`` (same set, two constraints).
 
     Rewrites ``onnx/``, ``vnnlib/``, ``instances.csv`` and ``metadata.csv`` from scratch
     (old ``.onnx`` and ``.vnnlib`` files there are removed first); returns the metadata rows.
     """
     import onnx
 
+    if (threshold_in_network or two_constraints) and NEUROCODEBENCH in encodings:
+        raise ValueError("threshold_in_network and two_constraints apply only to the single-output encodings")
+    if threshold_in_network and two_constraints:
+        raise ValueError("choose threshold_in_network or two_constraints, not both")
     formulas = read_rows(folder / FORMULAS_CSV)
     if not formulas:
         raise FileNotFoundError(f"no formulas in {folder / FORMULAS_CSV}; run generate first")
@@ -287,13 +383,15 @@ def export(
             if not cnf.is_satisfied_by(witness):
                 raise ExportCheckFailed(f"{row['solution_file']} does not satisfy {formula_id}")
 
-        vnnlib_file = Path("vnnlib") / f"{name}.vnnlib"
+        written = set()
         for encoding in encodings:
             instance = reduce_cnf(cnf, encoding)
             offset = instance.threshold if threshold_in_network else Fraction(0)
-            if encoding == encodings[0]:
-                (folder / vnnlib_file).write_text(vnnlib_text(instance, name, threshold_in_network),
-                                                  encoding="utf-8")
+            vnnlib_file = Path("vnnlib") / vnnlib_name(name, encoding)
+            if vnnlib_file not in written:
+                (folder / vnnlib_file).write_text(vnnlib_text(instance, name, threshold_in_network,
+                                                              two_constraints), encoding="utf-8")
+                written.add(vnnlib_file)
             network = shift_output(instance.network, offset) if threshold_in_network else instance.network
             model_bytes = to_onnx(network, name=f"{name}-{encoding}").SerializeToString()
             check_onnx(model_bytes, instance, witness, offset=offset)
@@ -313,6 +411,7 @@ def export(
                 "num_clauses": cnf.num_clauses,
                 "threshold": _decimal(instance.threshold),
                 "vnnlib_rhs": _decimal(instance.threshold - offset),
+                "output_constraints": 2 if two_constraints or encoding == NEUROCODEBENCH else 1,
                 "sat_solver_seconds": row["solver_seconds"],
             })
             if verbose:
@@ -343,7 +442,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--dir", type=Path, required=True,
                         help="folder with formulas.csv (output of generate); files are written there")
-    parser.add_argument("--encoding", nargs="+", choices=ENCODINGS, default=["compact"],
+    parser.add_argument("--encoding", nargs="+", choices=ALL_ENCODINGS, default=["compact"],
                         help="network encodings to export (default: compact)")
     parser.add_argument("--timeout", type=float, default=60.0,
                         help="per-instance timeout in seconds written to instances.csv (default 60)")
@@ -354,9 +453,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--threshold-in-network", action="store_true",
                         help="lower the network output by m - 1/2 and use the unsafe set Y_0 >= 0 "
                              "(workaround for alpha,beta-CROWN's MIP mode)")
+    parser.add_argument("--two-constraints", action="store_true",
+                        help="write the unsafe set as m - 1/2 <= Y_0 <= m (the same set, two constraints; "
+                             "alpha,beta-CROWN's MIP mode then treats it as a conjunction)")
     args = parser.parse_args(argv)
     export(args.dir, args.encoding, args.timeout, names=args.names, name_seed=args.name_seed,
-           threshold_in_network=args.threshold_in_network)
+           threshold_in_network=args.threshold_in_network, two_constraints=args.two_constraints)
     return 0
 
 

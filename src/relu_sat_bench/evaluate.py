@@ -13,6 +13,15 @@ Usage::
 * ``results/<tool>-rerun.csv`` files are diagnostic re-runs. They are listed separately and never
   replace the first run.
 
+Comparison of encodings (step 5b)::
+
+    python -m relu_sat_bench.evaluate --compare instances/satrelu-compact instances/satrelu-compact-shifted \
+        instances/satrelu-paper instances/satrelu-paper-shifted instances/satrelu-ncb --name satrelu --out report
+
+* ``--compare``: folders with the same formulas in different encodings (the ``encoding`` column of
+  ``metadata.csv``). For each tool only the formulas it ran in every one of its encodings are compared.
+  Writes ``encodings-<name>.md``.
+
 Writes to ``--out``:
 
 * ``summary.md``: per tool the verdicts, the VNN-COMP score, solved instances per family and size next
@@ -83,20 +92,30 @@ class Run:
     bench: str
     encoding: str = "compact"
     num_literals: int | None = None   # literal occurrences in the CNF, if the CNF file is available
+    output_constraints: int = 1       # constraints of the unsafe set in the VNN-LIB file
 
     @property
     def solved(self) -> bool:
         return self.verdict == "correct"
 
+    @property
+    def setup(self) -> str:
+        """The encoding, and for compact and paper whether the property was written as two constraints."""
+        if self.encoding in ("compact", "paper") and self.output_constraints == 2:
+            return f"{self.encoding} (2 constraints)"
+        return self.encoding
+
 
 def series_of(formula_id: str) -> str:
     """The ladder a formula belongs to: ``random-n20-r3.5-s1-001`` -> ``random r3.5``.
 
-    >>> [series_of(f) for f in ("pigeonhole-h4", "tseitin-odd-v10-s1-002", "planted-q-hidden-n12-r4.26-s1-0")]
-    ['pigeonhole', 'tseitin odd', 'planted r4.26']
+    >>> [series_of(f) for f in ("pigeonhole-h4", "tseitin-odd-v10-s1-002", "planted-q-hidden-n12-r4.26-s1-0",
+    ...                         "satrelu-v25-c40-unsat")]
+    ['pigeonhole', 'tseitin odd', 'planted r4.26', 'satrelu']
     """
     name = re.sub(r"-s\d+-\d+$", "", formula_id)        # seed and index
-    name = re.sub(r"-[nhv]\d+(?=-|$)", "", name)         # the size
+    name = re.sub(r"-(sat|unsat)$", "", name)            # the answer in imported names (sat_relu)
+    name = re.sub(r"-[nhvc]\d+(?=-|$)", "", name)        # the size
     name = name.replace("-q-hidden", "").replace("-naive", "")
     return name.replace("-", " ")
 
@@ -137,16 +156,22 @@ def load_runs(bench: Path, reruns: bool = False) -> list[Run]:
                 verdict=row["verdict"], result=row["result"], seconds=float(row["seconds"]),
                 timeout=float(row["timeout"]), bench=str(bench), encoding=info.get("encoding", "compact"),
                 num_literals=literals.get(info["formula_id"]),
+                output_constraints=int(info.get("output_constraints") or
+                                       (2 if info.get("encoding") == "neurocodebench" else 1)),
             ))
     return runs
 
 
-def combine(groups: list[list[Run]]) -> list[Run]:
-    """Merge runs from several folders; for a (tool, formula) pair the first folder wins."""
+def combine(groups: list[list[Run]], by_encoding: bool = False) -> list[Run]:
+    """Merge runs from several folders; for a (tool, formula) pair the first folder wins.
+
+    ``by_encoding``: keep one run per (tool, setup, formula) instead, for the comparison of encodings
+    (setup: the encoding, and whether the property has two constraints; see :attr:`Run.setup`).
+    """
     seen, merged = set(), []
     for runs in groups:
         for run in runs:
-            key = (run.tool, run.formula_id)
+            key = (run.tool, run.setup, run.formula_id) if by_encoding else (run.tool, run.formula_id)
             if key not in seen:
                 seen.add(key)
                 merged.append(run)
@@ -231,13 +256,20 @@ def frontier(runs: list[Run]) -> dict[tuple[str, str], dict[str, int | None]]:
 def dense_parameters(encoding: str, num_vars: int, num_clauses: int) -> int | None:
     """Weights and biases of the network as stored in the ONNX file, zeros included.
 
-    This is how VNN-COMP reports network sizes. For the compact encoding (2n literal ReLUs, m clause ReLUs,
-    one output): 2n*n + 2n, then m*2n + m, then m + 1. Other encodings: None (not needed so far).
+    This is how VNN-COMP reports network sizes. A layer with ``a`` inputs and ``b`` outputs stores
+    ``b * a + b`` numbers. Compact (2n literal ReLUs, m clause ReLUs, one output): 2n*n + 2n, then
+    m*2n + m, then m + 1. Neurocodebench (m + 2n hidden ReLUs, two outputs): (m + 2n)(n + 1), then
+    2(m + 2n) + 2. Paper: the seven layers of :mod:`relu_sat_bench.reduction`. Unknown encoding: None.
     """
-    if encoding != "compact":
-        return None
     n, m = num_vars, num_clauses
-    return (2 * n * n + 2 * n) + (m * 2 * n + m) + (m + 1)
+    if encoding == "compact":
+        return (2 * n * n + 2 * n) + (m * 2 * n + m) + (m + 1)
+    if encoding == "neurocodebench":
+        return (m + 2 * n) * (n + 1) + 2 * (m + 2 * n) + 2
+    if encoding == "paper":
+        widths = [n, 2 * n, n, 2 * n, 2 * n, 2 * m, m, 1]
+        return sum(b * a + b for a, b in zip(widths, widths[1:]))
+    return None
 
 
 def nonzero_parameters(encoding: str, num_vars: int, num_clauses: int, num_literals: int | None) -> int | None:
@@ -371,6 +403,147 @@ def write_cells(out: Path, runs: list[Run]) -> Path:
         writer = csv.DictWriter(handle, fieldnames=list(table[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(table)
+    return path
+
+
+# ----------------------------------------------------------------------- comparison of encodings
+
+ENCODING_ORDER = ["compact", "compact (2 constraints)", "paper", "paper (2 constraints)", "neurocodebench"]
+ENCODING_NOTES = {
+    "compact (2 constraints)": "the compact network; unsafe set m - 1/2 <= N(x) <= m, the same set written as "
+                               "two constraints",
+    "paper (2 constraints)": "the paper network; unsafe set m - 1/2 <= N(x) <= m, the same set written as two "
+                             "constraints",
+    "compact": "2n + m ReLUs in 2 hidden layers, one output N(x) = satisfied clauses; unsafe set N(x) >= m - 1/2",
+    "paper": "7n + 3m ReLUs in 6 hidden layers, the construction as written in the paper; same output and "
+             "unsafe set as compact",
+    "neurocodebench": "m + 2n ReLUs in 1 hidden layer, two outputs (the VNN-COMP 2025 benchmark sat_relu); "
+                      "unsafe set Y_0 >= 1 and Y_1 <= 0, reachable only at exact 0/1 points",
+}
+
+
+def encodings_of(runs: list[Run]) -> list[str]:
+    present = {run.setup for run in runs}
+    return [e for e in ENCODING_ORDER if e in present] + sorted(present - set(ENCODING_ORDER))
+
+
+def compared(runs: list[Run]) -> dict[str, list[Run]]:
+    """Per tool, its runs on the formulas it ran in every one of its encodings."""
+    result = {}
+    for tool in tools_of(runs):
+        mine = [r for r in runs if r.tool == tool]
+        per_encoding = defaultdict(set)
+        for run in mine:
+            per_encoding[run.setup].add(run.formula_id)
+        common = set.intersection(*per_encoding.values())
+        result[tool] = [r for r in mine if r.formula_id in common]
+    return result
+
+
+def encoding_summary(runs: list[Run]) -> list[dict]:
+    """One row per (tool, encoding): verdicts on the common formulas, and what only this encoding solved."""
+    rows = []
+    for tool, mine in compared(runs).items():
+        solved_in = defaultdict(set)
+        for run in mine:
+            if run.solved:
+                solved_in[run.setup].add(run.formula_id)
+        for encoding in encodings_of(mine):
+            group = [r for r in mine if r.setup == encoding]
+            others = set().union(*(v for e, v in solved_in.items() if e != encoding))
+            verdicts = Counter(r.verdict for r in group)
+            times = [r.seconds for r in group if r.solved]
+            rows.append({
+                "tool": tool, "encoding": encoding, "formulas": len(group), "correct": verdicts["correct"],
+                "correct sat": sum(r.solved and r.expected == "sat" for r in group),
+                "correct unsat": sum(r.solved and r.expected == "unsat" for r in group),
+                "wrong": verdicts["wrong"], "timeout": verdicts["timeout"],
+                "other": len(group) - verdicts["correct"] - verdicts["wrong"] - verdicts["timeout"],
+                "only here": len(solved_in[encoding] - others),
+                "median s (solved)": statistics.median(times) if times else None,
+            })
+    return rows
+
+
+def size_bin(series: str, num_vars: int) -> str:
+    """Sizes for the per-size table: the ladders as they are, the sat_relu formulas in bins of 10 variables."""
+    if series != "satrelu":
+        return str(num_vars)
+    low = 10 * ((num_vars - 1) // 10) + 1
+    return f"{low}-{low + 9}"
+
+
+def encoding_cells(runs: list[Run]) -> tuple[list[dict], list[tuple[str, str]]]:
+    """Solved per (series, answer, size) and (tool, encoding), on the common formulas of each tool."""
+    by_tool = compared(runs)
+    columns = [(tool, e) for tool, mine in by_tool.items() for e in encodings_of(mine)]
+    groups: dict[tuple, list[Run]] = defaultdict(list)
+    for mine in by_tool.values():
+        for run in mine:
+            groups[(run.series, run.expected, size_bin(run.series, run.num_vars), run.num_vars)].append(run)
+    merged: dict[tuple, list[Run]] = defaultdict(list)
+    for (series, expected, bin_, _), group in sorted(groups.items(), key=lambda item: (item[0][0], item[0][1], item[0][3])):
+        merged[(series, expected, bin_)].extend(group)
+    rows = []
+    for (series, expected, bin_), group in merged.items():
+        row = {"series": series, "expected": expected, "vars": bin_, "formulas": len({r.formula_id for r in group})}
+        for tool, encoding in columns:
+            mine = [r for r in group if r.tool == tool and r.setup == encoding]
+            row[f"{tool} {encoding}"] = f"{sum(r.solved for r in mine)}/{len(mine)}" if mine else ""
+        rows.append(row)
+    return rows, columns
+
+
+def encoding_sizes(runs: list[Run]) -> list[dict]:
+    """Network sizes per encoding over the compared formulas (median and largest)."""
+    rows = []
+    for encoding in encodings_of(runs):
+        formulas = {r.formula_id: r for r in runs if r.setup == encoding}.values()
+        relus = [f.num_relus for f in formulas]
+        params = [dense_parameters(f.encoding, f.num_vars, f.num_clauses) for f in formulas]
+        rows.append({"encoding": encoding, "formulas": len(relus),
+                     "median ReLUs": int(statistics.median(relus)), "max ReLUs": max(relus),
+                     "median params": None if None in params else int(statistics.median(params)),
+                     "max params": None if None in params else max(params),
+                     "note": ENCODING_NOTES.get(encoding, "")})
+    return rows
+
+
+def write_encoding_comparison(out: Path, runs: list[Run], name: str) -> Path:
+    by_tool = compared(runs)
+    lines = [f"# Comparison of encodings: {name}", "",
+             "Generated by `python -m relu_sat_bench.evaluate --compare`. The same formulas, encoded in different "
+             "networks and properties; every encoding is reachable iff the formula is satisfiable. For each tool only "
+             "the formulas it ran in every one of its encodings are compared. α,β-CROWN's MIP mode ran on the "
+             "`--threshold-in-network` variant of compact and paper (same networks with the threshold moved into "
+             "the last bias, see the README); *(2 constraints)* marks the variant with the unsafe set written as "
+             "`m - 1/2 <= Y_0 <= m` (`--two-constraints`). *Only here*: solved in this encoding and in none of the tool's other "
+             "encodings. Times include each tool's start-up.", ""]
+    lines += ["## Encodings", ""]
+    lines += [_md_table(encoding_sizes([r for mine in by_tool.values() for r in mine]),
+                        ["encoding", "formulas", "median ReLUs", "max ReLUs", "median params", "max params", "note"],
+                        ["encoding", "formulas", "ReLUs (median)", "ReLUs (max)", "parameters as stored (median)",
+                         "parameters as stored (max)", "network and property"]), ""]
+    lines += ["## Verdicts per tool and encoding", ""]
+    summary = encoding_summary(runs)
+    for row in summary:
+        row["tool"] = label(row["tool"])
+    lines += [_md_table(summary, list(summary[0])), ""]
+    lines += ["## Solved per family and size", ""]
+    table, columns = encoding_cells(runs)
+    keys = [f"{t} {e}" for t, e in columns]
+    lines += [_md_table(table, ["series", "expected", "vars", "formulas", *keys],
+                        ["series", "answer", "variables", "formulas", *(f"{label(t)}, {e}" for t, e in columns)]), ""]
+    wrong = [r for mine in by_tool.values() for r in mine if r.verdict in ("wrong", "reference-wrong")]
+    lines += ["## Wrong answers", ""]
+    if wrong:
+        rows = [{"tool": label(r.tool), "encoding": r.setup, "formula": r.formula_id, "expected": r.expected,
+                 "result": r.result, "verdict": r.verdict} for r in wrong]
+        lines += [_md_table(rows, list(rows[0])), ""]
+    else:
+        lines += ["None.", ""]
+    path = out / f"encodings-{name}.md"
+    path.write_text("\n".join(lines), encoding="utf-8")
     return path
 
 
@@ -580,13 +753,28 @@ def evaluate(benches: list[Path], extensions: list[Path], out: Path, figures: bo
     return written
 
 
+def compare(folders: list[Path], out: Path, name: str) -> Path:
+    out.mkdir(parents=True, exist_ok=True)
+    runs = combine([load_runs(f) for f in folders], by_encoding=True)
+    if not runs:
+        raise SystemExit("no results in " + ", ".join(map(str, folders)))
+    return write_encoding_comparison(out, runs, name)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m relu_sat_bench.evaluate", description=__doc__.split("\n")[0])
-    parser.add_argument("--bench", type=Path, nargs="+", required=True, help="folders with the same formulas")
+    parser.add_argument("--bench", type=Path, nargs="+", help="folders with the same formulas")
     parser.add_argument("--extension", type=Path, nargs="*", default=[], help="folders with further formulas")
+    parser.add_argument("--compare", type=Path, nargs="+", help="folders with the same formulas in other encodings")
+    parser.add_argument("--name", default="comparison", help="with --compare: writes encodings-<name>.md")
     parser.add_argument("--out", type=Path, default=Path("report"))
     parser.add_argument("--no-figures", action="store_true")
     args = parser.parse_args(argv)
+    if (args.bench is None) == (args.compare is None):
+        parser.error("give either --bench or --compare")
+    if args.compare:
+        print("written:", compare(args.compare, args.out, args.name))
+        return 0
     for path in evaluate(args.bench, args.extension, args.out, figures=not args.no_figures):
         print("written:", path)
     return 0

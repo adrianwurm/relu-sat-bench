@@ -186,6 +186,44 @@ def test_threshold_in_network_variant_is_equivalent(tmp_path):
         assert (new_out.max() >= 0) == (row["expected"] == "sat")
 
 
+def test_export_with_the_neurocodebench_encoding(tmp_path):
+    """Own property file with two outputs; reachable exactly at the satisfying 0/1 points."""
+    make_formulas(tmp_path)
+    rows = export(tmp_path, encodings=["compact", "neurocodebench"], verbose=False)
+    formulas = generate.read_rows(tmp_path / "formulas.csv")
+    ncb = [row for row in rows if row["encoding"] == "neurocodebench"]
+    assert len(ncb) == len(formulas) and all(row["onnx"].endswith("-neurocodebench.onnx") for row in ncb)
+    for row in ncb:
+        compact = next(r for r in rows if r["formula_id"] == row["formula_id"] and r["encoding"] == "compact")
+        assert row["vnnlib"] == compact["vnnlib"].replace(".vnnlib", "-neurocodebench.vnnlib")
+        text = (tmp_path / row["vnnlib"]).read_text()
+        assert len(re.findall(r"\(declare-const Y_\d+ Real\)", text)) == 2
+        assert re.findall(r"\(assert \((?:<=|>=) Y_\d+ [-\d.]+\)\)", text) == \
+            ["(assert (>= Y_0 1.0))", "(assert (<= Y_1 0.0))"]
+        assert (row["threshold"], row["vnnlib_rhs"]) == ("1.0", "1.0")
+        cnf = CNF.from_dimacs((tmp_path / formulas[row["formula_id"]]["cnf_file"]).read_text())
+        assert int(row["num_relus"]) == cnf.num_clauses + 2 * cnf.num_vars
+        points = np.array([encode_assignment(a) for a in iter_assignments(cnf.num_vars)])
+        y = run_onnx((tmp_path / row["onnx"]).read_bytes(), points, output=None)
+        assert y.shape == (len(points), 2)
+        assert ((y[:, 0] >= 1) & (y[:, 1] <= 0)).any() == (row["expected"] == "sat")
+
+
+def test_check_onnx_detects_a_wrong_neurocodebench_network():
+    cnf = CNF(3, ((1, 2, 3), (-1, -2), (-3,)))
+    wrong = to_onnx(reduce_cnf(CNF(3, cnf.clauses[:2]), "neurocodebench").network).SerializeToString()
+    with pytest.raises(ExportCheckFailed):
+        check_onnx(wrong, reduce_cnf(cnf, "neurocodebench"), witness=(True, False, False))
+    right = to_onnx(reduce_cnf(cnf, "neurocodebench").network).SerializeToString()
+    check_onnx(right, reduce_cnf(cnf, "neurocodebench"), witness=(True, False, False))
+
+
+def test_threshold_in_network_is_refused_for_neurocodebench(tmp_path):
+    make_formulas(tmp_path)
+    with pytest.raises(ValueError):
+        export(tmp_path, encodings=["compact", "neurocodebench"], verbose=False, threshold_in_network=True)
+
+
 FAMILY_WORDS = ("random", "planted", "pigeonhole", "tseitin", "ordering", "-odd", "-even")
 
 
@@ -257,7 +295,7 @@ def count_instances(spec) -> int:
 
 def test_generate_properties_spec_is_valid_and_within_the_vnncomp_cap():
     script = load_script()
-    for spec in (script.SPEC, script.PILOT_SPEC, script.SCALING_SPEC):
+    for spec in (script.SPEC, script.PILOT_SPEC, script.SCALING_SPEC, script.sample_spec(script.SPEC)):
         assert count_instances(spec) * script.TIMEOUT * len(script.ENCODINGS) <= VNNCOMP_MAX_TOTAL_SECONDS
 
 
@@ -267,19 +305,64 @@ def test_generate_properties_spec_is_frozen():
     assert count_instances(script.SPEC) == 213
     assert count_instances(script.PILOT_SPEC) == 77
     assert count_instances(script.SCALING_SPEC) == 65
+    assert count_instances(script.sample_spec(script.SPEC)) == 57
     assert script.TIMEOUT == 60.0 and script.ENCODINGS == ["compact"]
+
+
+def test_the_sample_contains_the_first_formula_of_every_size():
+    script = load_script()
+    parser = generate.build_parser()
+
+    def formulas(spec):
+        return {name: formula.cnf for command in spec
+                for name, _, formula in generate._instances(parser.parse_args(["--out", "unused", "--seed", "1",
+                                                                               *command]))}
+    full, sample = formulas(script.SPEC), formulas(script.sample_spec(script.SPEC))
+    assert all(full[name] == cnf for name, cnf in sample.items())
+    assert all(name.endswith("-000") for name in sample if "-s1-" in name)
+    assert len(sample) == 57
 
 
 def test_generate_properties_arguments():
     parse = load_script().parse_args
-    assert parse(["1"]) == (1, Path("benchmark"), False, "benchmark")
-    assert parse(["1", "out", "--threshold-in-network"]) == (1, Path("out"), True, "benchmark")
-    assert parse(["0", "--pilot", "pilot"]) == (0, Path("pilot"), False, "pilot")
-    assert parse(["1", "s", "--scaling", "--threshold-in-network"]) == (1, Path("s"), True, "scaling")
-    for bad in ([], ["x"], ["1", "a", "b"], ["1", "--unknown"], ["1", "--pilot", "--scaling"]):
+    assert parse(["1"]) == (1, Path("benchmark"), False, "benchmark", "compact", False)
+    assert parse(["1", "out", "--threshold-in-network"]) == (1, Path("out"), True, "benchmark", "compact", False)
+    assert parse(["0", "--pilot", "pilot"]) == (0, Path("pilot"), False, "pilot", "compact", False)
+    assert parse(["1", "s", "--scaling", "--threshold-in-network"]) == (1, Path("s"), True, "scaling", "compact", False)
+    assert parse(["1", "n", "--sample", "--neurocodebench"]) == (1, Path("n"), False, "sample", "neurocodebench", False)
+    assert parse(["1", "t", "--scaling", "--two-constraints"]) == (1, Path("t"), False, "scaling", "compact", True)
+    for bad in ([], ["x"], ["1", "a", "b"], ["1", "--unknown"], ["1", "--pilot", "--scaling"],
+                ["1", "--sample", "--pilot"], ["1", "--neurocodebench", "--threshold-in-network"],
+                ["1", "--two-constraints", "--threshold-in-network"], ["1", "--two-constraints", "--neurocodebench"]):
         assert parse(bad) is None
 
 
 def test_generate_properties_without_seed_prints_usage(capsys):
     assert load_script().main([]) == 2
     assert "generate_properties.py <seed>" in capsys.readouterr().out
+
+
+def test_two_constraints_variant(tmp_path):
+    """Same networks, unsafe set m - 1/2 <= Y_0 <= m: the upper bound holds on the whole box."""
+    make_formulas(tmp_path / "plain")
+    make_formulas(tmp_path / "two")
+    plain = export(tmp_path / "plain", encodings=["compact", "paper"], verbose=False)
+    two = export(tmp_path / "two", encodings=["compact", "paper"], verbose=False, two_constraints=True)
+    assert [r["output_constraints"] for r in plain] == [1] * len(plain)
+    assert [r["output_constraints"] for r in two] == [2] * len(two)
+    for a, b in zip(plain, two):
+        assert (tmp_path / "plain" / a["onnx"]).read_bytes() == (tmp_path / "two" / b["onnx"]).read_bytes()
+        m = int(b["num_clauses"])
+        text = (tmp_path / "two" / b["vnnlib"]).read_text()
+        assert re.findall(r"\(assert \((?:<=|>=) Y_0 [-\d.]+\)\)", text) == \
+            [f"(assert (>= Y_0 {m - 0.5}))", f"(assert (<= Y_0 {m}.0))"]
+    formulas = generate.read_rows(tmp_path / "plain" / "formulas.csv")
+    for row in plain:
+        cnf = CNF.from_dimacs((tmp_path / "plain" / formulas[row["formula_id"]]["cnf_file"]).read_text())
+        network = reduce_cnf(cnf, row["encoding"]).network
+        box = np.random.default_rng(0).random((200, cnf.num_vars))
+        assert network.forward(box)[:, 0].max() <= cnf.num_clauses       # the extra constraint always holds
+    with pytest.raises(ValueError):
+        export(tmp_path / "two", encodings=["compact"], verbose=False, two_constraints=True, threshold_in_network=True)
+    with pytest.raises(ValueError):
+        export(tmp_path / "two", encodings=["neurocodebench"], verbose=False, two_constraints=True)

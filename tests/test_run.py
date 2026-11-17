@@ -81,6 +81,24 @@ FAKE_TOOLS = {
             body = "\\n".join(str(b) for b in bits)
             write(f"sat\\nX real [1,{len(bits)}]\\n{body}\\nY real [1,1]\\n{y}\\n")
     ''',
+    # like "oracle", but checks every output constraint of the property (neurocodebench: Y_0 >= 1, Y_1 <= 0)
+    "oracle-multi": '''
+        import onnxruntime
+        session = onnxruntime.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+        n = session.get_inputs()[0].shape[1]
+        constraints = re.findall(r"\\(assert \\((<=|>=) Y_(\\d+) ([-\\d.]+)\\)\\)", open(vnnlib_path).read())
+        found = None
+        for bits in itertools.product((0.0, 1.0), repeat=n):
+            y = session.run(None, {"X": np.array([bits], dtype=np.float32)})[0][0]
+            if all(y[int(k)] >= float(v) if op == ">=" else y[int(k)] <= float(v) for op, k, v in constraints):
+                found = bits, y
+                break
+        if found is None:
+            write("unsat\\n")
+        else:
+            pairs = [f"(X_{i} {b})" for i, b in enumerate(found[0])] + [f"(Y_{k} {v})" for k, v in enumerate(found[1])]
+            write("sat\\n(" + "\\n ".join(pairs) + ")\\n")
+    ''',
     "liar": '''
         write("unsat\\n")
     ''',
@@ -196,6 +214,20 @@ def test_exit_codes_name_the_signal():
     assert describe_exit(None) == "no exit code"
 
 
+def test_check_with_the_neurocodebench_encoding():
+    """Unsafe set Y_0 >= 1 and Y_1 <= 0: only exact 0/1 points (up to the tolerance) are counterexamples."""
+    cnf = CNF(2, ((1, 2), (-1, 2)))
+    good = check_answer("sat", {"X_0": 0.0, "X_1": 1.0}, "sat", cnf, "neurocodebench")
+    assert (good.verdict, good.cex_check, good.cex_output) == ("correct", "valid", "1;0")
+    almost = check_answer("sat", {"X_0": 1e-7, "X_1": 1 - 1e-7}, "sat", cnf, "neurocodebench")
+    assert almost.verdict == "correct"
+    # (1/4, 3/4) is a valid counterexample of the compact encoding, but not here: Y_1 = 1/2
+    quarter = check_answer("sat", {"X_0": 0.25, "X_1": 0.75}, "sat", cnf, "neurocodebench")
+    assert quarter.verdict == "wrong" and "Y_1 = 0.5 violates <= 0" in quarter.cex_check
+    falsified = check_answer("sat", {"X_0": 0.0, "X_1": 0.0}, "sat", cnf, "neurocodebench")
+    assert falsified.verdict == "wrong" and "Y_0 = 0 violates >= 1" in falsified.cex_check
+
+
 def test_valid_counterexample_for_an_unsat_instance_is_flagged_as_our_bug():
     cnf = CNF(1, ((1,),))
     assert check_answer("sat", {"X_0": 1.0}, "unsat", cnf, "compact").verdict == "reference-wrong"
@@ -222,6 +254,35 @@ def test_threshold_in_network_variant_is_judged_the_same(template, tmp_path, cap
     assert {row["expected"] for row in rows} == {"sat", "unsat"}
     assert all(row["cex_check"] == "valid" for row in rows if row["expected"] == "sat")
     script = template / "tools" / "oracle.py"
+    capsys.readouterr()
+    main(["--bench", str(bench), "--tool", "abcrown-mip", "--limit", "0", "--command", sys.executable, str(script)])
+    assert "WARNING" not in capsys.readouterr().out
+
+
+def test_neurocodebench_benchmark_is_judged_correctly(template, tmp_path, capsys):
+    bench = tmp_path / "ncb"
+    build(bench, seed=0, spec=SPEC, timeout=20, encodings=["neurocodebench"], solver_timeout=30)
+    rows = run(bench, template, "oracle-multi")
+    assert {row["verdict"] for row in rows} == {"correct"}
+    assert {row["expected"] for row in rows} == {"sat", "unsat"}
+    assert all(row["cex_check"] == "valid" for row in rows if row["expected"] == "sat")
+    rows = run(bench, template, "bad-cex")
+    assert {row["verdict"] for row in rows} == {"wrong"}
+    assert all("violates" in row["cex_check"] for row in rows)
+    # alpha,beta-CROWN's MIP mode reads the two-constraint property correctly: no warning
+    script = template / "tools" / "oracle-multi.py"
+    capsys.readouterr()
+    main(["--bench", str(bench), "--tool", "abcrown-mip", "--limit", "0", "--command", sys.executable, str(script)])
+    assert "WARNING" not in capsys.readouterr().out
+
+
+def test_two_constraint_variant_is_judged_correctly_and_gives_no_mip_warning(template, tmp_path, capsys):
+    bench = tmp_path / "two"
+    build(bench, seed=0, spec=SPEC, timeout=20, solver_timeout=30, two_constraints=True)
+    rows = run(bench, template, "oracle-multi")
+    assert {row["verdict"] for row in rows} == {"correct"}
+    assert {row["expected"] for row in rows} == {"sat", "unsat"}
+    script = template / "tools" / "oracle-multi.py"
     capsys.readouterr()
     main(["--bench", str(bench), "--tool", "abcrown-mip", "--limit", "0", "--command", sys.executable, str(script)])
     assert "WARNING" not in capsys.readouterr().out

@@ -64,6 +64,26 @@ The verification instance asks: does ``N(x) < m - 1/2`` hold for all ``x`` in
 ``[0, 1]^n``? It is *violated* iff the formula is *satisfiable*, and every
 counterexample decodes into a satisfying assignment (:func:`decode_assignment`).
 The threshold sits in the middle of the gap, ``1/2`` away from both possible values.
+
+**neurocodebench** (``m + 2n`` ReLUs, 1 hidden layer, 2 outputs): the construction of the
+VNN-COMP 2025 benchmark ``sat_relu`` (NeuroCodeBench 2.0; Manino et al., arXiv:2510.23389),
+rebuilt for the comparison of encodings. With ``P_j`` and ``N_j`` the variables that occur
+positively and negatively in clause ``j``:
+
+=====  ======  ======  ===============================================================
+layer  name    width   computes
+=====  ======  ======  ===============================================================
+1      hidden  m + 2n  ``v_j = ReLU(sum_{N_j} x - sum_{P_j} x + 1 - |N_j|)``, then
+                       ``ReLU(x_i)``, then ``ReLU(2 x_i - 1)``
+2      output  2       ``Y_0 = 1 - (v_1 + ... + v_m)``,
+                       ``Y_1 = sum_i (ReLU(x_i) - ReLU(2 x_i - 1))`` (linear)
+=====  ======  ======  ===============================================================
+
+At a 0/1 point ``v_j`` is 1 if clause ``j`` is falsified and 0 otherwise. On ``[0, 1]``,
+``Y_1 = sum_i min(x_i, 1 - x_i)`` is 0 exactly at the 0/1 points. The unsafe set is
+``Y_0 >= 1 and Y_1 <= 0``: it holds exactly at the 0/1 points that satisfy every clause, so
+it is reachable iff the formula is satisfiable, but without any margin (a counterexample must
+be an exact 0/1 point). The neuron order is the one of the published ONNX files.
 """
 
 from __future__ import annotations
@@ -79,7 +99,9 @@ from relu_sat_bench.network import AffineLayer, ReluNetwork
 
 INPUT_LOWER = Fraction(0)
 INPUT_UPPER = Fraction(1)
-ENCODINGS = ("compact", "paper")
+ENCODINGS = ("compact", "paper")       # one output N(x) = satisfied clauses, unsafe set N(x) >= m - 1/2
+NEUROCODEBENCH = "neurocodebench"      # two outputs, unsafe set Y_0 >= 1 and Y_1 <= 0 (see above)
+ALL_ENCODINGS = (*ENCODINGS, NEUROCODEBENCH)
 DEFAULT_ENCODING = "compact"
 
 
@@ -149,28 +171,77 @@ def _build_paper(cnf: CNF) -> tuple[AffineLayer, ...]:
     )
 
 
+def _build_neurocodebench(cnf: CNF) -> tuple[AffineLayer, ...]:
+    n, m = cnf.num_vars, cnf.num_clauses
+    clause_weight = np.zeros((m, n), dtype=np.int64)
+    clause_bias = np.ones(m, dtype=np.int64)
+    for j, clause in enumerate(cnf.clauses):
+        for lit in set(clause):                    # P_j and N_j are sets: a repeated literal counts once
+            if lit > 0:
+                clause_weight[j, lit - 1] -= 1     # positive literal: - x
+            else:
+                clause_weight[j, -lit - 1] += 1    # negative literal: + x, and 1 - |N_j| in the bias
+                clause_bias[j] -= 1
+    eye_n = np.eye(n, dtype=np.int64)
+    zeros_n = np.zeros(n, dtype=np.int64)
+    output = np.zeros((2, m + 2 * n), dtype=np.int64)
+    output[0, :m] = -1          # Y_0 = 1 - sum_j v_j
+    output[1, m:m + n] = 1      # Y_1 = sum_i ReLU(x_i) - ReLU(2 x_i - 1)
+    output[1, m + n:] = -1
+    return (
+        AffineLayer("hidden", np.vstack([clause_weight, eye_n, 2 * eye_n]),
+                    np.concatenate([clause_bias, zeros_n, -np.ones(n, dtype=np.int64)]), relu=True),
+        AffineLayer("output", output, np.array([1, 0], dtype=np.int64), relu=False),
+    )
+
+
 def build_network(cnf: CNF, encoding: str = DEFAULT_ENCODING) -> ReluNetwork:
     """The ReLU network ``N`` of the reduction; see the module docstring for the layers."""
-    if encoding not in ENCODINGS:
-        raise ValueError(f"unknown encoding {encoding!r}; choose one of {ENCODINGS}")
+    if encoding not in ALL_ENCODINGS:
+        raise ValueError(f"unknown encoding {encoding!r}; choose one of {ALL_ENCODINGS}")
     if cnf.num_vars == 0 or cnf.num_clauses == 0:
         raise ValueError("the formula needs at least one variable and one clause")
-    layers = _build_compact(cnf) if encoding == "compact" else _build_paper(cnf)
-    return ReluNetwork(layers)
+    builders = {"compact": _build_compact, "paper": _build_paper, NEUROCODEBENCH: _build_neurocodebench}
+    return ReluNetwork(builders[encoding](cnf))
+
+
+@dataclass(frozen=True)
+class OutputConstraint:
+    """One constraint of the unsafe set: ``Y_output >= rhs`` or ``Y_output <= rhs``."""
+
+    output: int
+    op: str
+    rhs: Fraction
+
+    def holds(self, value, tolerance: float = 0.0) -> bool:
+        if self.op == ">=":
+            return value >= self.rhs - tolerance
+        if self.op == "<=":
+            return value <= self.rhs + tolerance
+        raise ValueError(f"unknown operator {self.op!r}")
 
 
 @dataclass(frozen=True)
 class VerificationInstance:
-    """Network, input box ``[0, 1]^n`` and the property ``N(x) < threshold``.
+    """Network, input box ``[0, 1]^n`` and the property.
 
-    In VNN-LIB terms the *unsafe* set is ``{x in [0, 1]^n : N(x) >= threshold}``; a
-    verifier should answer "sat" (counterexample exists) iff the formula is satisfiable.
+    In VNN-LIB terms the *unsafe* set is ``{x in [0, 1]^n : N(x) >= threshold}`` for the
+    encodings in :data:`ENCODINGS`, and ``Y_0 >= 1 and Y_1 <= 0`` for neurocodebench
+    (``threshold`` is then the right-hand side of the ``Y_0`` constraint, 1). A verifier
+    should answer "sat" (counterexample exists) iff the formula is satisfiable.
     """
 
     cnf: CNF
     network: ReluNetwork
     threshold: Fraction
     encoding: str
+
+    @property
+    def unsafe(self) -> tuple[OutputConstraint, ...]:
+        """The constraints of the unsafe set; all of them must hold for a counterexample."""
+        if self.encoding == NEUROCODEBENCH:
+            return (OutputConstraint(0, ">=", Fraction(1)), OutputConstraint(1, "<=", Fraction(0)))
+        return (OutputConstraint(0, ">=", self.threshold),)
 
     @property
     def num_inputs(self) -> int:
@@ -191,18 +262,15 @@ class VerificationInstance:
             raise ValueError(f"expected {self.num_inputs} inputs, got {len(values)}")
         if any(v < INPUT_LOWER or v > INPUT_UPPER for v in values):
             return False
-        output = self.network.forward(values, exact=exact)[0]
-        return output >= self.threshold
+        outputs = self.network.forward(values, exact=exact)
+        return all(c.holds(outputs[c.output]) for c in self.unsafe)
 
 
 def reduce_cnf(cnf: CNF, encoding: str = DEFAULT_ENCODING) -> VerificationInstance:
     """Map a CNF formula to a verification instance that is violated iff it is satisfiable."""
-    return VerificationInstance(
-        cnf=cnf,
-        network=build_network(cnf, encoding),
-        threshold=Fraction(cnf.num_clauses) - Fraction(1, 2),
-        encoding=encoding,
-    )
+    threshold = Fraction(1) if encoding == NEUROCODEBENCH else Fraction(cnf.num_clauses) - Fraction(1, 2)
+    return VerificationInstance(cnf=cnf, network=build_network(cnf, encoding), threshold=threshold,
+                                encoding=encoding)
 
 
 def encode_assignment(assignment: Sequence[bool]) -> np.ndarray:

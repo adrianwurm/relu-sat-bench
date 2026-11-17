@@ -23,7 +23,8 @@ FORMULAS = [  # formula_id, family, expected, variables, SAT-solver seconds
 ]
 
 
-def write_bench(folder: Path, formulas, results: dict[str, list[tuple[str, str, float]]]) -> Path:
+def write_bench(folder: Path, formulas, results: dict[str, list[tuple[str, str, float]]],
+                encoding: str = "compact") -> Path:
     """A benchmark folder: metadata.csv and results/<tool>.csv with (verdict, result, seconds) per formula."""
     (folder / "results").mkdir(parents=True)
     with (folder / "metadata.csv").open("w", newline="") as handle:
@@ -31,7 +32,7 @@ def write_bench(folder: Path, formulas, results: dict[str, list[tuple[str, str, 
         writer.writeheader()
         for i, (fid, family, expected, n, sat_s) in enumerate(formulas, start=1):
             writer.writerow({"onnx": f"onnx/f{i:04d}.onnx", "vnnlib": f"vnnlib/f{i:04d}.vnnlib", "timeout": 60,
-                             "formula_id": fid, "family": family, "encoding": "compact", "expected": expected,
+                             "formula_id": fid, "family": family, "encoding": encoding, "expected": expected,
                              "num_inputs": n, "num_relus": 3 * n, "num_clauses": 4 * n, "threshold": 4 * n - 0.5,
                              "vnnlib_rhs": 4 * n - 0.5, "sat_solver_seconds": sat_s})
     for tool, rows in results.items():
@@ -40,7 +41,7 @@ def write_bench(folder: Path, formulas, results: dict[str, list[tuple[str, str, 
             writer.writeheader()
             for i, ((fid, family, expected, _, _), (verdict, result, seconds)) in enumerate(zip(formulas, rows), 1):
                 writer.writerow({"tool": tool, "onnx": f"onnx/f{i:04d}.onnx", "vnnlib": f"vnnlib/f{i:04d}.vnnlib",
-                                 "formula_id": fid, "family": family, "encoding": "compact", "expected": expected,
+                                 "formula_id": fid, "family": family, "encoding": encoding, "expected": expected,
                                  "result": result, "verdict": verdict, "seconds": seconds, "wall_seconds": seconds,
                                  "timeout": 60})
     return folder
@@ -64,6 +65,7 @@ def test_series_names():
     assert ev.series_of("pigeonhole-h7") == "pigeonhole"
     assert ev.series_of("tseitin-even-v14-s1-001") == "tseitin even"
     assert ev.series_of("ordering-n9") == "ordering"
+    assert ev.series_of("satrelu-v25-c40-unsat") == "satrelu"
 
 
 def test_summary_counts_and_score(bench):
@@ -93,13 +95,16 @@ def test_dense_parameters_match_the_exported_network():
     from relu_sat_bench.cnf import CNF
     from relu_sat_bench.reduction import reduce_cnf
     cnf = CNF(3, ((1, -2, 3), (-1, 2), (2, 3), (-3,)))
+    for encoding in ("compact", "paper", "neurocodebench"):
+        network = reduce_cnf(cnf, encoding).network
+        assert ev.dense_parameters(encoding, 3, 4) == sum(layer.weight.size + layer.bias.size
+                                                          for layer in network.layers)
     network = reduce_cnf(cnf, "compact").network
-    stored = sum(layer.weight.size + layer.bias.size for layer in network.layers)
     nonzero = sum(int((layer.weight != 0).sum()) + int((layer.bias != 0).sum()) for layer in network.layers)
     literals = sum(len(c) for c in cnf.clauses)
-    assert ev.dense_parameters("compact", 3, 4) == stored
     assert ev.nonzero_parameters("compact", 3, 4, literals) == nonzero == 4 * 3 + 8 + 2 * 4 + 1
-    assert ev.dense_parameters("paper", 3, 4) is None and ev.nonzero_parameters("compact", 3, 4, None) is None
+    assert ev.dense_parameters("tiny", 3, 4) is None and ev.nonzero_parameters("compact", 3, 4, None) is None
+    assert ev.nonzero_parameters("paper", 3, 4, literals) is None
 
 
 def test_literal_counts_come_from_the_cnf_files(tmp_path, bench):
@@ -163,3 +168,76 @@ def test_evaluate_without_figures(tmp_path, bench):
     written = ev.evaluate([bench], [], tmp_path / "report", figures=False)
     assert [p.name for p in written] == ["summary.md", "cells.csv"]
     assert "Scaling experiment" not in (tmp_path / "report" / "summary.md").read_text(encoding="utf-8")
+
+
+# ------------------------------------------------------------------ comparison of encodings
+
+
+@pytest.fixture
+def encodings(tmp_path):
+    """compact: the 5 formulas; neurocodebench: 4 of them (a sample), with other results."""
+    compact = write_bench(tmp_path / "final", FORMULAS, {
+        "marabou": [OK_SAT, TIMEOUT, OK_UNSAT, TIMEOUT, OK_UNSAT],
+        "abcrown-bab": [OK_SAT, TIMEOUT, OK_UNSAT, OK_UNSAT, TIMEOUT],
+    })
+    ncb = write_bench(tmp_path / "ncb", FORMULAS[:4], {
+        "marabou": [TIMEOUT, OK_SAT, OK_UNSAT, TIMEOUT],
+        "abcrown-bab": [OK_SAT, TIMEOUT, TIMEOUT, WRONG],
+    }, encoding="neurocodebench")
+    return [compact, ncb]
+
+
+def test_comparison_uses_the_common_formulas_of_each_tool(encodings):
+    runs = ev.combine([ev.load_runs(f) for f in encodings], by_encoding=True)
+    assert len(runs) == 2 * 5 + 2 * 4                                # nothing merged away across encodings
+    by_tool = ev.compared(runs)
+    assert {r.formula_id for r in by_tool["marabou"]} == {f[0] for f in FORMULAS[:4]}
+    rows = {(r["tool"], r["encoding"]): r for r in ev.encoding_summary(runs)}
+    assert list(rows) == [("marabou", "compact"), ("marabou", "neurocodebench"),
+                          ("abcrown-bab", "compact"), ("abcrown-bab", "neurocodebench")]
+    m_c, m_n = rows[("marabou", "compact")], rows[("marabou", "neurocodebench")]
+    assert (m_c["formulas"], m_c["correct"], m_c["only here"]) == (4, 2, 1)     # random-n10 sat only in compact
+    assert (m_n["correct"], m_n["only here"]) == (2, 1)                          # random-n20 sat only in ncb
+    b_n = rows[("abcrown-bab", "neurocodebench")]
+    assert (b_n["correct"], b_n["wrong"], b_n["timeout"], b_n["only here"]) == (1, 1, 2, 0)
+
+
+def test_encoding_cells_and_sizes(encodings):
+    runs = ev.combine([ev.load_runs(f) for f in encodings], by_encoding=True)
+    table, columns = ev.encoding_cells(runs)
+    assert columns == [("marabou", "compact"), ("marabou", "neurocodebench"),
+                       ("abcrown-bab", "compact"), ("abcrown-bab", "neurocodebench")]
+    cell = {(r["series"], r["expected"], r["vars"]): r for r in table}
+    assert cell[("random r3.5", "sat", "20")]["marabou neurocodebench"] == "1/1"
+    assert ("tseitin odd", "unsat", "9") not in cell                         # not in the sample
+    assert ev.size_bin("satrelu", 25) == "21-30" and ev.size_bin("satrelu", 10) == "1-10"
+    sizes = {r["encoding"]: r for r in ev.encoding_sizes(runs)}
+    assert sizes["neurocodebench"]["max params"] == ev.dense_parameters("neurocodebench", 20, 80)
+
+
+def test_compare_writes_the_report(tmp_path, encodings):
+    assert ev.main(["--compare", *map(str, encodings), "--name", "sample", "--out", str(tmp_path / "r")]) == 0
+    text = (tmp_path / "r" / "encodings-sample.md").read_text(encoding="utf-8")
+    assert text.startswith("# Comparison of encodings: sample")
+    assert "| Marabou | neurocodebench | 4 | 2 |" in text
+    assert "## Wrong answers" in text and "pigeonhole-h4" in text
+    for argv in ([], ["--bench", "a", "--compare", "b"]):
+        with pytest.raises(SystemExit):
+            ev.main(argv)
+
+
+def test_two_constraint_variant_is_a_setup_of_its_own(tmp_path):
+    one = write_bench(tmp_path / "one", FORMULAS, {"abcrown-mip": [OK_SAT, TIMEOUT, OK_UNSAT, TIMEOUT, TIMEOUT]})
+    two = write_bench(tmp_path / "two", FORMULAS, {"abcrown-mip": [OK_SAT, OK_SAT, OK_UNSAT, OK_UNSAT, TIMEOUT]})
+    meta = two / "metadata.csv"
+    rows = list(csv.DictReader(meta.open()))
+    with meta.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=[*rows[0], "output_constraints"])
+        writer.writeheader()
+        writer.writerows({**r, "output_constraints": "2"} for r in rows)
+    runs = ev.combine([ev.load_runs(one), ev.load_runs(two)], by_encoding=True)
+    assert sorted({r.setup for r in runs}) == ["compact", "compact (2 constraints)"]
+    summary = {r["encoding"]: r for r in ev.encoding_summary(runs)}
+    assert (summary["compact"]["correct"], summary["compact (2 constraints)"]["correct"]) == (2, 4)
+    assert summary["compact (2 constraints)"]["only here"] == 2
+    assert ev.Run.setup.fget(runs[0]) == "compact"

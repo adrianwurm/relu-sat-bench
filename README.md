@@ -20,8 +20,8 @@ decides it), and the difficulty of the instance is inherited from the formula.
 ## The construction
 
 The reduction is based on the proof of Theorem 2 ii) in Wurm, CPAIOR 2024 (see
-[References](#references)). Two encodings are implemented. They compute the same function on
-the input box.
+[References](#references)). Two encodings of it are implemented; they compute the same function on
+the input box. A third encoding, from a related benchmark, is there for comparison.
 
 **compact** (default, used for the experiments): `2n + m` ReLUs in two hidden layers.
 
@@ -43,6 +43,13 @@ the formula: it is `m` if the formula is satisfiable and at most `m - 1` otherwi
 threshold `m - 1/2` lies in the middle of this gap. All weights and biases are integers.
 Details and the full argument are in the docstring of
 [`reduction.py`](src/relu_sat_bench/reduction.py).
+
+**neurocodebench**: the construction of the VNN-COMP 2025 benchmark `sat_relu` (see
+[Related benchmarks](#related-benchmarks)), rebuilt to compare encodings on the same formulas. It has
+`m + 2n` ReLUs in one hidden layer and two outputs: `Y_0 = 1 - (number of falsified clauses)` at 0/1
+points, and `Y_1 = sum_i min(x_i, 1 - x_i)`, which is 0 exactly at the 0/1 points. The unsafe set
+`Y_0 >= 1 and Y_1 <= 0` is reachable iff the formula is satisfiable, but without a margin: every
+counterexample must be an exact 0/1 point.
 
 ## Quickstart
 
@@ -94,6 +101,7 @@ instance is reproducible from its seed.
 python generate_properties.py <seed> [output folder]     # VNN-COMP convention, default folder: benchmark/
 python generate_properties.py <seed> [output folder] --threshold-in-network   # variant, see below
 python generate_properties.py <seed> [output folder] --scaling                # larger formulas, see below
+python generate_properties.py <seed> [output folder] --sample --neurocodebench  # comparison, see below
 ```
 
 This runs the generator lines listed in `SPEC` at the top of `generate_properties.py` (213 instances,
@@ -132,6 +140,25 @@ it fails too.
 same file names. It exists because α,β-CROWN's MIP mode currently compares single-constraint properties
 with 0 instead of their right-hand side (as of commit `b58d83c`); on the normal files it reports
 "unsafe" and then crashes.
+
+**Comparing encodings.** `--sample` builds one formula per size of the frozen set (the 57 formulas with index
+000, identical to those in the full set with the same seed), and `--neurocodebench` encodes them in the
+`sat_relu` construction instead (`onnx/f0001-neurocodebench.onnx`, output `Y` [1, 2], and its own
+`vnnlib/f0001-neurocodebench.vnnlib`). The other direction reads the formulas back out of the published
+`sat_relu` networks and encodes them in any of the three encodings:
+
+```bash
+python -m relu_sat_bench.satrelu --source <downloaded sat_relu folder> --out instances/satrelu-compact
+python -m relu_sat_bench.satrelu --source <...> --out instances/satrelu-compact-shifted --threshold-in-network
+python -m relu_sat_bench.satrelu --source <...> --out instances/satrelu-ncb --encoding neurocodebench
+```
+
+The import checks every network's structure, checks that our `neurocodebench` network computes the same
+function as the published one, and decides each formula with CaDiCaL (unsatisfiable answers confirmed by a
+second solver); the answer must match the `sat`/`unsat` label of the file name. The `sat_relu` files are not
+included here (their repository states no license); download `benchmarks/sat_relu` from
+`VNN-COMP/vnncomp2025_benchmarks`. `python -m relu_sat_bench.evaluate --compare <folders> --name <name>`
+writes `report/encodings-<name>.md`: per tool and encoding the verdicts on the same formulas.
 
 ## Running the verifiers
 
@@ -175,10 +202,11 @@ instances need a (free academic) license file.
 
 ![Share of instances solved by formula size](report/solved-by-size.svg)
 
-- **No tool gave a wrong answer.** Every counterexample was checked independently.
+- **No tool gave a wrong answer** on this set. Every counterexample was checked independently. (Marabou did on
+  formulas of the `sat_relu` benchmark, see [Same formulas, other encodings](#same-formulas-other-encodings).)
 - **Every verifier fails on formulas a SAT solver handles in milliseconds.** The scaling experiment continues
-  the ladders for the strongest tool, α,β-CROWN's MIP mode, which hands the problem to Gurobi. It finds its
-  limit at about 100 variables for unsatisfiable random 3-SAT, about 45 for Tseitin formulas and n = 10 for the
+  the ladders for the strongest tool, α,β-CROWN's MIP mode, which hands the problem to Gurobi. In the compact
+  encoding it finds its limit at about 100 variables for unsatisfiable random 3-SAT, about 45 for Tseitin formulas and n = 10 for the
   ordering principle. CaDiCaL needs at most 0.04 s for the formulas at these limits. Pigeonhole formulas are the
   exception: they are hard for CDCL as well (59 s at 10 holes), and Gurobi fails at the same size.
 - **The hard networks are small.** At the size where a tool first solves less than half of a family, the
@@ -201,7 +229,8 @@ instances need a (free academic) license file.
   What makes our networks hard is not their size: on the input box every ReLU is unstable, that is, depending
   on the input it is active or inactive, and the verifier has to reason about all of these switches at once.
   In local-robustness properties around a given input, the small input region usually fixes most ReLUs to one
-  phase. And `sat_relu` shows that networks of the same size are easy when the formula behind them is easy.
+  phase. How hard a network of this size is depends on the formula and, as the next section shows, just as much
+  on the encoding.
 - **Proving and finding are different problems.** α,β-CROWN's branch-and-bound refutes unsatisfiable random
   formulas up to 60 variables, but finds counterexamples only with the gradient attack that runs before it
   (up to 20 variables). In this configuration branch-and-bound never reads off a counterexample, not even
@@ -218,6 +247,38 @@ pip install -e ".[report]"          # matplotlib, for the figures
 python -m relu_sat_bench.evaluate --bench instances/final instances/final-shifted \
     --extension instances/scaling-shifted --out report
 ```
+
+### Same formulas, other encodings
+
+The 98 formulas of the VNN-COMP 2025 benchmark `sat_relu`, read back from its networks, and one formula per size
+of our set (57), each in several encodings (see [Comparing encodings](#building-the-benchmark)). Correct answers,
+wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report/encodings-satrelu.md) and
+[`report/encodings-sample.md`](report/encodings-sample.md):
+
+| formulas | tool | compact | paper | neurocodebench |
+|---|---|---|---|---|
+| 98 `sat_relu` (49 sat, 49 unsat) | Marabou | 52 (1) | 51 (12) | 49 (10) |
+| | α,β-CROWN, branch-and-bound | 52 | 52 | 49 |
+| | α,β-CROWN, MIP | 71 | 70 | 98 |
+| 57 of ours (29 sat, 28 unsat) | Marabou | 22 | – | 24 |
+| | α,β-CROWN, branch-and-bound | 22 | – | 19 |
+| | α,β-CROWN, MIP | 55 | – | 57 |
+
+- **The encoding matters as much as the formula, in opposite directions.** For MIP the `sat_relu` encoding is
+  by far the easiest: Gurobi needs at most 0.7 s for any of the 155 formulas, while in compact 27 unsatisfiable
+  `sat_relu` formulas time out. For Marabou and branch-and-bound it is the hardest one for proofs: of the 77
+  unsatisfiable formulas they prove 2 and 0 (in compact, branch-and-bound proves 15 of our 28). A likely reason
+  for MIP, from α,β-CROWN's logs: a property with two constraints is added to the MIP as constraints
+  ("AND-style"), which turns the network into the usual 0/1 integer program for SAT, while a single-constraint
+  property is handled by maximizing the output ("OR-style").
+- **The `sat_relu` formulas are easy only in part.** Their satisfiable formulas are found by every tool in every
+  encoding (their clauses have a median of 32 literals, so almost every 0/1 point is a solution). Their
+  unsatisfiable formulas are easy only for MIP in their own encoding.
+- **Our formulas stay hard for Marabou and branch-and-bound in the `sat_relu` encoding**, not for MIP, which
+  solves all 57. Where MIP's limit lies in that encoding is still open.
+- **Marabou 2.0.0 answered "sat" on 17 unsatisfiable `sat_relu` formulas** (23 runs over the three encodings).
+  The returned assignments violate one of Marabou's own ReLU constraints by 1, so this is not a rounding issue
+  in our check. On our own formulas Marabou gave no wrong answer.
 
 ## Related benchmarks
 

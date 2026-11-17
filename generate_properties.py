@@ -10,6 +10,13 @@ Options (after the seed and the folder):
   --pilot                  the 77-instance pilot set of step 3 instead of the frozen set
   --scaling                larger formulas for the scaling experiment with alpha,beta-CROWN's MIP mode
                            (an extra experiment, not part of the benchmark set)
+  --sample                 one formula per size of the frozen set (57 instances): the formulas with index
+                           000, identical to those of the frozen set built with the same seed
+  --neurocodebench         the neurocodebench encoding (the construction of the VNN-COMP 2025 benchmark
+                           sat_relu) instead of compact; not together with --threshold-in-network
+  --two-constraints        unsafe set m - 1/2 <= Y_0 <= m: the same set, written as two constraints, which
+                           alpha,beta-CROWN's MIP mode handles differently; compact only, not together with
+                           --threshold-in-network
 
 The size ladders in SPEC were calibrated once, on the pilot run of 31 Oct 2026 (seed 0, Marabou
 and alpha,beta-CROWN, 60 s per instance), so that every family ranges from "every tool solves it"
@@ -24,6 +31,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 from relu_sat_bench.benchmark import build
 
@@ -65,17 +73,35 @@ SCALING_SPEC = [
     ["ordering", "--size", "9", "10", "11", "12"],
 ]
 
+
+def sample_spec(spec: list[list[str]]) -> list[list[str]]:
+    """``spec`` with one formula per size: every ``--count`` set to 1.
+
+    Each formula's random generator is seeded by (seed, family, parameters, index), not by the count,
+    so the sample contains exactly the formulas with index 000 of the full set (decided 16 Nov 2026,
+    for the comparison with the neurocodebench encoding).
+    """
+    return [[("1" if i > 0 and command[i - 1] == "--count" else arg) for i, arg in enumerate(command)]
+            for command in spec]
+
+
 TIMEOUT = 60.0          # seconds per verifier run (instances.csv)
 ENCODINGS = ["compact"]
-SETS = {"--pilot": "pilot", "--scaling": "scaling"}
-OPTIONS = ("--threshold-in-network", *SETS)
+SETS = {"--pilot": "pilot", "--scaling": "scaling", "--sample": "sample"}
+OPTIONS = ("--threshold-in-network", "--neurocodebench", "--two-constraints", *SETS)
 
 
-def parse_args(argv: list[str]) -> tuple[int, Path, bool, str] | None:
-    """(seed, output folder, threshold_in_network, set name), or None if the arguments are invalid.
+class Arguments(NamedTuple):
+    seed: int
+    out: Path
+    threshold_in_network: bool
+    set_name: str     # "benchmark" (the frozen SPEC), "pilot", "scaling" or "sample"
+    encoding: str     # "compact" or "neurocodebench"
+    two_constraints: bool = False
 
-    The set name is "benchmark" (the frozen SPEC), "pilot" or "scaling".
-    """
+
+def parse_args(argv: list[str]) -> Arguments | None:
+    """The parsed command line, or None if the arguments are invalid."""
     flags = [arg for arg in argv if arg.startswith("--")]
     positional = [arg for arg in argv if not arg.startswith("--")]
     if not positional or not positional[0].isdigit() or len(positional) > 2:
@@ -83,10 +109,14 @@ def parse_args(argv: list[str]) -> tuple[int, Path, bool, str] | None:
     if any(flag not in OPTIONS for flag in flags):
         return None
     sets = [SETS[flag] for flag in flags if flag in SETS]
-    if len(sets) > 1:
+    threshold_in_network = "--threshold-in-network" in flags
+    neurocodebench = "--neurocodebench" in flags
+    two_constraints = "--two-constraints" in flags
+    if len(sets) > 1 or sum((threshold_in_network, neurocodebench, two_constraints)) > 1:
         return None
     out = Path(positional[1]) if len(positional) > 1 else Path("benchmark")
-    return int(positional[0]), out, "--threshold-in-network" in flags, sets[0] if sets else "benchmark"
+    return Arguments(int(positional[0]), out, threshold_in_network, sets[0] if sets else "benchmark",
+                     "neurocodebench" if neurocodebench else ENCODINGS[0], two_constraints)
 
 
 def main(argv: list[str]) -> int:
@@ -94,9 +124,10 @@ def main(argv: list[str]) -> int:
     if parsed is None:
         print(__doc__)
         return 2
-    seed, out, threshold_in_network, name = parsed
-    spec = {"benchmark": SPEC, "pilot": PILOT_SPEC, "scaling": SCALING_SPEC}[name]
-    rows = build(out, seed, spec, TIMEOUT, ENCODINGS, threshold_in_network=threshold_in_network)
+    seed, out, threshold_in_network, name, encoding, two_constraints = parsed
+    spec = {"benchmark": SPEC, "pilot": PILOT_SPEC, "scaling": SCALING_SPEC, "sample": sample_spec(SPEC)}[name]
+    rows = build(out, seed, spec, TIMEOUT, [encoding], threshold_in_network=threshold_in_network,
+                 two_constraints=two_constraints)
     print(f"benchmark written to {out} ({len(rows)} instances)")
     return 0
 

@@ -16,6 +16,7 @@ import pytest
 from formulas import SMALL_FORMULAS, max_sat
 from relu_sat_bench.cnf import CNF, brute_force_max_satisfied, iter_assignments
 from relu_sat_bench.reduction import (
+    NEUROCODEBENCH,
     build_network,
     clause_selector,
     decode_assignment,
@@ -314,3 +315,61 @@ def test_collection_contains_satisfiable_and_unsatisfiable_formulas():
     """Guards against a vacuous test suite (e.g. only satisfiable formulas)."""
     results = {max_sat(cnf) == cnf.num_clauses for _, cnf in SMALL_FORMULAS}
     assert results == {True, False}
+
+
+# ------------------------------------------------------------ neurocodebench encoding
+# The construction of the VNN-COMP 2025 benchmark sat_relu (NeuroCodeBench 2.0), rebuilt for the
+# comparison of encodings. It has two outputs and the unsafe set Y_0 >= 1 and Y_1 <= 0, so it is not
+# part of the ``encoding`` fixture, whose tests assume the counting output N(x).
+
+
+def test_neurocodebench_layers(small_cnf):
+    n, m = small_cnf.num_vars, small_cnf.num_clauses
+    net = build_network(small_cnf, NEUROCODEBENCH)
+    assert [layer.name for layer in net.layers] == ["hidden", "output"]
+    assert [layer.relu for layer in net.layers] == [True, False]
+    assert net.num_relus == m + 2 * n and net.output_dim == 2
+    hidden = net.layers[0]
+    assert set(np.unique(hidden.weight[:m])) <= {-1, 0, 1}
+    assert (hidden.weight[m:m + n] == np.eye(n)).all() and (hidden.weight[m + n:] == 2 * np.eye(n)).all()
+    assert (hidden.bias[m:m + n] == 0).all() and (hidden.bias[m + n:] == -1).all()
+
+
+def test_neurocodebench_unsafe_set():
+    instance = reduce_cnf(CNF(2, ((1, 2), (-1, 2))), NEUROCODEBENCH)
+    assert instance.threshold == 1
+    assert [(c.output, c.op, c.rhs) for c in instance.unsafe] == [(0, ">=", 1), (1, "<=", 0)]
+    assert [(c.output, c.op, c.rhs) for c in reduce_cnf(CNF(2, ((1, 2),))).unsafe] == [(0, ">=", F(1, 2))]
+
+
+def test_neurocodebench_boolean_points(small_cnf):
+    """At a 0/1 point Y_0 = 1 - (falsified clauses) and Y_1 = 0."""
+    instance = reduce_cnf(small_cnf, NEUROCODEBENCH)
+    m = small_cnf.num_clauses
+    for a in iter_assignments(small_cnf.num_vars):
+        y = instance.network.forward(encode_assignment(a), exact=True)
+        assert list(y) == [1 - (m - small_cnf.count_satisfied(a)), 0]
+        assert instance.is_counterexample(encode_assignment(a)) == small_cnf.is_satisfied_by(a)
+
+
+def test_neurocodebench_counterexamples_are_exactly_the_satisfying_vertices(small_cnf):
+    """Inside the box Y_1 = sum min(x_i, 1 - x_i) > 0 unless x is a 0/1 point, so no other counterexample."""
+    instance = reduce_cnf(small_cnf, NEUROCODEBENCH)
+    for x in sample_points(random.Random(5), small_cnf.num_vars):
+        y = instance.network.forward(x, exact=True)
+        assert y[1] == sum(min(v, 1 - v) for v in x)
+        binary = all(v in (0, 1) for v in x)
+        assert instance.is_counterexample(x) == (binary and small_cnf.is_satisfied_by([v == 1 for v in x]))
+
+
+def test_neurocodebench_worked_example():
+    # (x1 or not x2) and (x2 or x3): clause neurons ReLU(x2 - x1), ReLU(1 - x2 - x3)
+    net = build_network(CNF(3, ((1, -2), (2, 3))), NEUROCODEBENCH)
+    hidden, output = net.layers
+    assert hidden.weight[:2].tolist() == [[-1, 1, 0], [0, -1, -1]]
+    assert hidden.bias[:2].tolist() == [0, 1]
+    assert output.weight[0].tolist() == [-1, -1, 0, 0, 0, 0, 0, 0]
+    assert output.weight[1].tolist() == [0, 0, 1, 1, 1, -1, -1, -1]
+    assert output.bias.tolist() == [1, 0]
+    assert list(net.forward([1, 1, 0], exact=True)) == [1, 0]
+    assert list(net.forward([0, 1, 0], exact=True)) == [0, 0]
