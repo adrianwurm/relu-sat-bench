@@ -10,6 +10,8 @@ Options (after the seed and the folder):
   --pilot                  the 77-instance pilot set of step 3 instead of the frozen set
   --scaling                larger formulas for the scaling experiment with alpha,beta-CROWN's MIP mode
                            (an extra experiment, not part of the benchmark set)
+  --large                  still larger formulas, beyond --scaling: where alpha,beta-CROWN's MIP mode stops in
+                           the neurocodebench encoding (an extra experiment, use with --neurocodebench)
   --sample                 one formula per size of the frozen set (57 instances): the formulas with index
                            000, identical to those of the frozen set built with the same seed
   --neurocodebench         the neurocodebench encoding (the construction of the VNN-COMP 2025 benchmark
@@ -73,6 +75,18 @@ SCALING_SPEC = [
     ["ordering", "--size", "9", "10", "11", "12"],
 ]
 
+# Beyond SCALING_SPEC (45 instances; decided 17 Nov 2026). In the neurocodebench encoding alpha,beta-CROWN's
+# MIP mode solves all of SCALING_SPEC, so these continue every ladder. CaDiCaL needs at most a few seconds for
+# the random formulas (n = 300, ratio 5: about 1-4 s); pigeonhole h11-h14 are beyond it (answer by theorem).
+LARGE_SPEC = [
+    ["random", "--vars", "175", "200", "250", "--ratio", "4.26", "--count", "3"],
+    ["random", "--vars", "175", "200", "250", "300", "--ratio", "5", "--count", "3"],
+    ["planted", "--vars", "300", "400", "600", "--ratio", "4.26", "--count", "2"],
+    ["pigeonhole", "--holes", "11", "12", "13", "14"],
+    ["tseitin", "--vertices", "60", "80", "100", "140", "200", "--count", "2"],
+    ["ordering", "--size", "14", "16", "18", "20"],
+]
+
 
 def sample_spec(spec: list[list[str]]) -> list[list[str]]:
     """``spec`` with one formula per size: every ``--count`` set to 1.
@@ -87,7 +101,7 @@ def sample_spec(spec: list[list[str]]) -> list[list[str]]:
 
 TIMEOUT = 60.0          # seconds per verifier run (instances.csv)
 ENCODINGS = ["compact"]
-SETS = {"--pilot": "pilot", "--scaling": "scaling", "--sample": "sample"}
+SETS = {"--pilot": "pilot", "--scaling": "scaling", "--large": "large", "--sample": "sample"}
 OPTIONS = ("--threshold-in-network", "--neurocodebench", "--two-constraints", *SETS)
 
 
@@ -95,7 +109,7 @@ class Arguments(NamedTuple):
     seed: int
     out: Path
     threshold_in_network: bool
-    set_name: str     # "benchmark" (the frozen SPEC), "pilot", "scaling" or "sample"
+    set_name: str     # "benchmark" (the frozen SPEC), "pilot", "scaling", "large" or "sample"
     encoding: str     # "compact" or "neurocodebench"
     two_constraints: bool = False
 
@@ -125,7 +139,8 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     seed, out, threshold_in_network, name, encoding, two_constraints = parsed
-    spec = {"benchmark": SPEC, "pilot": PILOT_SPEC, "scaling": SCALING_SPEC, "sample": sample_spec(SPEC)}[name]
+    spec = {"benchmark": SPEC, "pilot": PILOT_SPEC, "scaling": SCALING_SPEC, "large": LARGE_SPEC,
+            "sample": sample_spec(SPEC)}[name]
     rows = build(out, seed, spec, TIMEOUT, [encoding], threshold_in_network=threshold_in_network,
                  two_constraints=two_constraints)
     print(f"benchmark written to {out} ({len(rows)} instances)")

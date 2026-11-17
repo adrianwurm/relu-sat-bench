@@ -295,7 +295,7 @@ def count_instances(spec) -> int:
 
 def test_generate_properties_spec_is_valid_and_within_the_vnncomp_cap():
     script = load_script()
-    for spec in (script.SPEC, script.PILOT_SPEC, script.SCALING_SPEC, script.sample_spec(script.SPEC)):
+    for spec in (script.SPEC, script.PILOT_SPEC, script.SCALING_SPEC, script.LARGE_SPEC, script.sample_spec(script.SPEC)):
         assert count_instances(spec) * script.TIMEOUT * len(script.ENCODINGS) <= VNNCOMP_MAX_TOTAL_SECONDS
 
 
@@ -306,6 +306,7 @@ def test_generate_properties_spec_is_frozen():
     assert count_instances(script.PILOT_SPEC) == 77
     assert count_instances(script.SCALING_SPEC) == 65
     assert count_instances(script.sample_spec(script.SPEC)) == 57
+    assert count_instances(script.LARGE_SPEC) == 45
     assert script.TIMEOUT == 60.0 and script.ENCODINGS == ["compact"]
 
 
@@ -331,8 +332,9 @@ def test_generate_properties_arguments():
     assert parse(["1", "s", "--scaling", "--threshold-in-network"]) == (1, Path("s"), True, "scaling", "compact", False)
     assert parse(["1", "n", "--sample", "--neurocodebench"]) == (1, Path("n"), False, "sample", "neurocodebench", False)
     assert parse(["1", "t", "--scaling", "--two-constraints"]) == (1, Path("t"), False, "scaling", "compact", True)
+    assert parse(["1", "l", "--large", "--neurocodebench"]) == (1, Path("l"), False, "large", "neurocodebench", False)
     for bad in ([], ["x"], ["1", "a", "b"], ["1", "--unknown"], ["1", "--pilot", "--scaling"],
-                ["1", "--sample", "--pilot"], ["1", "--neurocodebench", "--threshold-in-network"],
+                ["1", "--sample", "--pilot"], ["1", "--large", "--scaling"], ["1", "--neurocodebench", "--threshold-in-network"],
                 ["1", "--two-constraints", "--threshold-in-network"], ["1", "--two-constraints", "--neurocodebench"]):
         assert parse(bad) is None
 

@@ -208,7 +208,9 @@ instances need a (free academic) license file.
   the ladders for the strongest tool, α,β-CROWN's MIP mode, which hands the problem to Gurobi. In the compact
   encoding it finds its limit at about 100 variables for unsatisfiable random 3-SAT, about 45 for Tseitin formulas and n = 10 for the
   ordering principle. CaDiCaL needs at most 0.04 s for the formulas at these limits. Pigeonhole formulas are the
-  exception: they are hard for CDCL as well (59 s at 10 holes), and Gurobi fails at the same size.
+  exception: they are hard for CDCL as well (59 s at 10 holes), and Gurobi fails at the same size. These limits
+  belong to the compact encoding: in the `sat_relu` encoding the same MIP mode solves the whole scaling set (see
+  [Same formulas, other encodings](#same-formulas-other-encodings)).
 - **The hard networks are small.** At the size where a tool first solves less than half of a family, the
   networks have 10–200 inputs and encode 40–850 clauses. Stored as ONNX files they have 1.2k–420k parameters,
   but almost all of these are zeros: each literal neuron reads one input and each clause neuron only its
@@ -267,15 +269,21 @@ wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report
 - **The encoding matters as much as the formula, in opposite directions.** For MIP the `sat_relu` encoding is
   by far the easiest: Gurobi needs at most 0.7 s for any of the 155 formulas, while in compact 27 unsatisfiable
   `sat_relu` formulas time out. For Marabou and branch-and-bound it is the hardest one for proofs: of the 77
-  unsatisfiable formulas they prove 2 and 0 (in compact, branch-and-bound proves 15 of our 28). A likely reason
-  for MIP, from α,β-CROWN's logs: a property with two constraints is added to the MIP as constraints
-  ("AND-style"), which turns the network into the usual 0/1 integer program for SAT, while a single-constraint
-  property is handled by maximizing the output ("OR-style").
+  unsatisfiable formulas they prove 2 and 0 (in compact, branch-and-bound proves 15 of our 28).
+- **For MIP, it is mostly the network.** α,β-CROWN adds a property with two constraints to the MIP
+  ("AND-style") and handles a single constraint by maximizing the output ("OR-style"). Writing the compact
+  property as two constraints (`m - 1/2 <= Y_0 <= m`, the same set; `--two-constraints`) helps on random and
+  pigeonhole formulas (scaling set: 40 → 53 of 65) but not on Tseitin, ordering or `sat_relu` formulas (71 → 69
+  of 98). In the `sat_relu` encoding MIP solves all 65 scaling formulas and all 98 `sat_relu` formulas. There the
+  two output constraints force the inputs to 0/1 and every clause neuron to 0, which turns the MIP into the usual
+  0/1 integer program for SAT ([`report/encodings-scaling.md`](report/encodings-scaling.md)).
 - **The `sat_relu` formulas are easy only in part.** Their satisfiable formulas are found by every tool in every
   encoding (their clauses have a median of 32 literals, so almost every 0/1 point is a solution). Their
   unsatisfiable formulas are easy only for MIP in their own encoding.
-- **Our formulas stay hard for Marabou and branch-and-bound in the `sat_relu` encoding**, not for MIP, which
-  solves all 57. Where MIP's limit lies in that encoding is still open.
+- **Our formulas stay hard for Marabou and branch-and-bound in the `sat_relu` encoding**, not for MIP: it solves
+  all 57, and also the whole scaling set (up to 200 variables, Gurobi at most 17 s), including the Tseitin,
+  ordering, planted and pigeonhole formulas it cannot solve in compact. Where MIP stops in that encoding is
+  still open.
 - **Marabou 2.0.0 answered "sat" on 17 unsatisfiable `sat_relu` formulas** (23 runs over the three encodings).
   The returned assignments violate one of Marabou's own ReLU constraints by 1, so this is not a rounding issue
   in our check. On our own formulas Marabou gave no wrong answer.
