@@ -303,7 +303,8 @@ wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report
   150 variables on. Planted formulas with 300 or more variables are hard for both.
 - **Marabou 2.0.0 answered "sat" on 17 unsatisfiable `sat_relu` formulas** (23 runs over the three encodings).
   The returned assignments violate one of Marabou's own ReLU constraints by 1, so this is not a rounding issue
-  in our check. On our own formulas Marabou gave no wrong answer.
+  in our check. On our own formulas Marabou gave no wrong answer. Reported as
+  [Marabou issue #899](https://github.com/NeuralNetworkVerification/Marabou/issues/899).
 
 ## Related benchmarks
 
