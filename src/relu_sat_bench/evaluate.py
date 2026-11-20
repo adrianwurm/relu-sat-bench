@@ -94,6 +94,7 @@ class Run:
     num_literals: int | None = None   # literal occurrences in the CNF, if the CNF file is available
     output_constraints: int = 1       # constraints of the unsafe set in the VNN-LIB file
     sat_solved: bool = True           # False: CaDiCaL hit its time limit, the answer comes from the construction
+    onnx: str = ""                    # the instance's ONNX file, relative to the benchmark folder
 
     @property
     def solved(self) -> bool:
@@ -167,7 +168,7 @@ def load_runs(bench: Path, reruns: bool = False) -> list[Run]:
                 num_literals=literals.get(info["formula_id"]),
                 output_constraints=int(info.get("output_constraints") or
                                        (2 if info.get("encoding") == "neurocodebench" else 1)),
-                sat_solved=solved_by_sat.get(info["formula_id"], True),
+                sat_solved=solved_by_sat.get(info["formula_id"], True), onnx=row["onnx"],
             ))
     return runs
 
@@ -635,11 +636,13 @@ HANG_NOTE = ("Where a line dips and recovers, a run hung before the solver start
              "in summary.md solved most of these.")
 
 
-def plot_solved_by_size(runs: list[Run], out: Path) -> Path:
+def plot_solved_by_size(runs: list[Run], out: Path, extension: bool = True, hangs: bool = True) -> Path:
+    """``extension``: some sizes come from extra folders run by MIP only; ``hangs``: there were diagnostic
+    re-runs of hung runs. Both only add a note."""
     import matplotlib.pyplot as plt
     _style(plt)
     fig, axes = _panel_grid(plt, "Share of instances solved within 60 s, by formula size",
-                            "Beyond the benchmark sizes only α,β-CROWN (MIP) was run.")
+                            "Beyond the benchmark sizes only α,β-CROWN (MIP) was run." if extension else "")
     for (row, col), title, mine in _panels(runs):
         ax = axes[row][col]
         ax.set_title(title, loc="left")
@@ -655,14 +658,14 @@ def plot_solved_by_size(runs: list[Run], out: Path) -> Path:
         ax.set_xlabel("variables (log)")
     for ax in axes[:, 0]:
         ax.set_ylabel("solved (%)")
-    _finish_grid(fig, axes, HANG_NOTE)
+    _finish_grid(fig, axes, HANG_NOTE if hangs else "")
     path = out / "solved-by-size.svg"
     fig.savefig(path, metadata={"Date": None})
     plt.close(fig)
     return path
 
 
-def plot_runtime_by_size(runs: list[Run], out: Path) -> Path:
+def plot_runtime_by_size(runs: list[Run], out: Path, hangs: bool = True) -> Path:
     import matplotlib.pyplot as plt
     _style(plt)
     fig, axes = _panel_grid(plt, "Median time per formula size: verifiers against the SAT solver",
@@ -688,7 +691,7 @@ def plot_runtime_by_size(runs: list[Run], out: Path) -> Path:
         ax.set_xlabel("variables (log)")
     for ax in axes[:, 0]:
         ax.set_ylabel("seconds (log)")
-    _finish_grid(fig, axes, HANG_NOTE)
+    _finish_grid(fig, axes, HANG_NOTE if hangs else "")
     path = out / "runtime-by-size.svg"
     fig.savefig(path, metadata={"Date": None})
     plt.close(fig)
@@ -702,15 +705,24 @@ def plot_cactus(runs: list[Run], out: Path) -> Path:
     fig, ax = plt.subplots(figsize=(6.8, 4.6))
     formulas = formulas_of(runs)
     total = len(formulas)
+    ends = []
     for tool in [*tools_of(runs), None]:
         if tool is None:
             times = sorted(max(f.sat_seconds, 1e-4) for f in formulas.values() if f.sat_solved)
         else:
             times = sorted(r.seconds for r in runs if r.tool == tool and r.solved)
         _line(ax, times, range(1, len(times) + 1), tool, markers=False)
-        if times:  # direct label at the end of the line, in text ink
-            ax.annotate(f"{SAT_SOLVER if tool is None else label(tool)}: {len(times)}", (times[-1], len(times)),
-                        xytext=(-2, 6), textcoords="offset points", ha="right", fontsize=8, color=INK_2)
+        if times:
+            ends.append((times[-1], len(times), f"{SAT_SOLVER if tool is None else label(tool)}: {len(times)}"))
+    # direct labels in the right margin, at the height of each line's end (moved apart where they would
+    # overlap), joined to the end by a thin line; text in text ink
+    previous = None
+    for x, y, text in sorted(ends, key=lambda e: -e[1]):
+        y_text = y if previous is None else min(y, previous - 0.06 * total)
+        previous = y_text
+        ax.annotate(text, (x, y), xytext=(1.02, y_text), textcoords=("axes fraction", "data"), ha="left",
+                    va="center", fontsize=8, color=INK_2, annotation_clip=False,
+                    arrowprops={"arrowstyle": "-", "color": AXIS, "linewidth": 0.6, "shrinkA": 0, "shrinkB": 3})
     ax.set_xscale("log")
     ax.set_xlim(5e-5, 100)
     ax.set_ylim(0, total * 1.05)
@@ -721,8 +733,8 @@ def plot_cactus(runs: list[Run], out: Path) -> Path:
                  fontsize=11, fontweight="bold", color=INK)
     fig.text(0.02, 0.92, f"{SAT_SOLVER}: time in the generator. Verifiers: time of the whole run, start-up "
              "included\n(about 0.4 s for Marabou, 4 s for α,β-CROWN).", ha="left", va="top", color=INK_2, fontsize=8)
-    ax.legend(loc="upper left", bbox_to_anchor=(0.37, 0.93))
-    fig.tight_layout(rect=(0, 0, 1, 0.84))
+    fig.legend(*ax.get_legend_handles_labels(), loc="lower center", ncol=4, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.06, 0.8, 0.84))
     path = out / "cactus.svg"
     fig.savefig(path, metadata={"Date": None})
     plt.close(fig)
@@ -732,7 +744,7 @@ def plot_cactus(runs: list[Run], out: Path) -> Path:
 def _size_ticks(ax) -> None:
     from matplotlib.ticker import FixedLocator, NullFormatter, NullLocator
     low, high = ax.get_xlim()
-    ticks = [t for t in (5, 10, 20, 50, 100, 200) if low <= t <= high]
+    ticks = [t for t in (5, 10, 20, 50, 100, 200, 500) if low <= t <= high]
     ax.xaxis.set_major_locator(FixedLocator(ticks))
     ax.xaxis.set_major_formatter(lambda value, _: f"{value:g}")
     ax.xaxis.set_minor_locator(NullLocator())
@@ -768,7 +780,9 @@ def evaluate(benches: list[Path], extensions: list[Path], out: Path, figures: bo
             print("matplotlib is not installed: no figures (pip install -e \".[report]\")")
         else:
             both = combine([main, extension])
-            written += [plot_solved_by_size(both, out), plot_runtime_by_size(both, out), plot_cactus(main, out)]
+            hangs = any(r.tool in {m.tool for m in main} for r in reruns)
+            written += [plot_solved_by_size(both, out, extension=bool(extension), hangs=hangs),
+                        plot_runtime_by_size(both, out, hangs=hangs), plot_cactus(main, out)]
     return written
 
 

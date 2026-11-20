@@ -239,10 +239,12 @@ instances need a (free academic) license file.
   | relu-sat-bench, where α,β-CROWN (BaB) fails | 12–60 | 46–300 | 300–1.7k | 1.6k–44k |
   | relu-sat-bench, where α,β-CROWN (MIP) fails | 48–200 | 128–852 | 830–5.1k | 17k–420k |
   | ACAS Xu (VNN-COMP) | 5 | – | – | 13k |
-  | `sat_relu` (VNN-COMP 2025), all 100 solved by α,β-CROWN | 2–100 | – | – | 100–35k |
+  | `sat_relu` (VNN-COMP 2025), all 100 solved by α,β-CROWN | 6–100 | 9–485 | 94–26k | 326–70k |
   | CIFAR-100 ResNets (VNN-COMP 2025) | 3072 | – | – | 2.5M–3.8M |
 
-  Sizes of the VNN-COMP networks: Table 3 of the VNN-COMP 2025 report (Kaulen et al., arXiv:2512.19007).
+  Sizes of ACAS Xu and the CIFAR-100 networks: Table 3 of the VNN-COMP 2025 report (Kaulen et al.,
+  arXiv:2512.19007). `sat_relu`: measured on the 98 published networks (the report gives 2–100 inputs and
+  100–35k parameters).
   What makes our networks hard is not their size: on the input box every ReLU is unstable, that is, depending
   on the input it is active or inactive, and the verifier has to reason about all of these switches at once.
   In local-robustness properties around a given input, the small input region usually fixes most ReLUs to one
@@ -305,6 +307,27 @@ wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report
   The returned assignments violate one of Marabou's own ReLU constraints by 1, so this is not a rounding issue
   in our check. On our own formulas Marabou gave no wrong answer. Reported as
   [Marabou issue #899](https://github.com/NeuralNetworkVerification/Marabou/issues/899).
+
+### The second set (`sat_relu` encoding)
+
+209 instances, 60 s each ([`report/ncb/summary.md`](report/ncb/summary.md)); no wrong answers:
+
+| tool | solved | sat | unsat |
+|---|---|---|---|
+| Marabou | 46 | 41 | 5 |
+| α,β-CROWN, branch-and-bound | 31 | 31 | 0 |
+| α,β-CROWN, MIP | 202 | 108 | 94 |
+| CaDiCaL (60 s) | 199 | | |
+
+![Share of instances of the second set solved by formula size](report/ncb/solved-by-size.svg)
+
+- **MIP fails only at the top of two ladders** (300 variables: random ratio 5, planted) and solves all 10
+  formulas that CaDiCaL cannot decide within 60 s (pigeonhole with 11-14 holes, Tseitin with 150-300 variables).
+- **Branch-and-bound proves nothing in this encoding.** It fails on the smallest unsatisfiable instance of every
+  family, down to networks with 24 ReLUs and 218 stored parameters (ordering, n = 4); all its 31 answers are
+  counterexamples from its PGD attack. Marabou proves 5 formulas, none with more than 10 variables.
+- **On the 73 formulas shared with the first set** ([`report/encodings-overlap.md`](report/encodings-overlap.md)),
+  branch-and-bound drops from 42 to 26 (unsatisfiable: 25 to 0), Marabou goes from 31 to 34, MIP from 72 to 73.
 
 ## Related benchmarks
 
