@@ -254,6 +254,11 @@ instances need a (free academic) license file.
   formulas up to 60 variables, but finds counterexamples only with the gradient attack that runs before it
   (up to 20 variables). In this configuration branch-and-bound never reads off a counterexample, not even
   in regions where every ReLU is fixed. Marabou is the other way round: better at finding than at proving.
+- **Ten times more time moves the limits for proofs, hardly for finding.** Rerun with 600 s instead of 60 s at
+  each tool's first failing size ([`report/long-timeout.md`](report/long-timeout.md)), branch-and-bound proves
+  all 8 unsatisfiable instances there and MIP 7 of 9, so these limits move by at least one size step. Marabou
+  proves none of its 10 and finds 3 of 10 counterexamples; branch-and-bound finds none, because it gives up
+  after 50-103 s ("all nodes are split"), long before the timeout.
 - **Two problems in α,β-CROWN came up.** Its MIP mode compares single-constraint properties with 0 instead of
   their right-hand side (reported as [issue #111](https://github.com/Verified-Intelligence/alpha-beta-CROWN/issues/111);
   the `--threshold-in-network` variant works around it), and about 1 run in 25 in MIP mode

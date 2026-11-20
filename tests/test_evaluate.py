@@ -269,3 +269,34 @@ def test_formulas_answered_by_construction(tmp_path):
     assert ev.main(["--bench", str(bench), "--out", str(tmp_path / "r"), "--no-figures"]) == 0
     text = (tmp_path / "r" / "summary.md").read_text(encoding="utf-8")
     assert "CaDiCaL solved 4 of 5 formulas" in text and "from the construction" in text
+
+
+def test_long_timeout_report(tmp_path):
+    """Runs with a longer timeout are compared with the source runs, found through the column ``source``."""
+    write_bench(tmp_path / "final", FORMULAS, {"abcrown-bab": [OK_SAT, TIMEOUT, TIMEOUT, TIMEOUT, OK_UNSAT]})
+    chosen = FORMULAS[1:4]                         # the three timeouts, renumbered f0001-f0003
+    long = write_bench(tmp_path / "long-bab", chosen, {"abcrown-bab": [
+        ("timeout", "timeout", 80.0),              # gave up after 80 of 600 s
+        ("correct", "unsat", 200.0),               # solved now
+        ("timeout", "timeout", 610.0)]})           # still open at the limit
+    for name in ("metadata.csv", "results/abcrown-bab.csv"):
+        path = long / name
+        rows = list(csv.DictReader(path.open(newline="")))
+        fields = list(rows[0]) + (["source"] if name == "metadata.csv" else [])
+        for i, row in enumerate(rows):
+            row["timeout"] = 600
+            if name == "metadata.csv":
+                row["source"] = f"final/onnx/f{i + 2:04d}.onnx"
+        with path.open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(rows)
+    pairs = ev.long_pairs(long)
+    assert [(a.formula_id, b.formula_id) for a, b in pairs] == [(f[0], f[0]) for f in chosen]
+    assert [b.verdict for _, b in pairs] == ["timeout"] * 3
+    (row,) = ev.long_summary(pairs)
+    assert (row["instances"], row["solved now"], row["still open"], row["gave up early"]) == (3, 1, 2, 1)
+    assert row["timeout"] == "60 s → 600 s"
+    assert ev.main(["--long", str(long), "--out", str(tmp_path / "r")]) == 0
+    text = (tmp_path / "r" / "long-timeout.md").read_text(encoding="utf-8")
+    assert text.startswith("# A longer timeout") and "timeout (gave up)" in text
