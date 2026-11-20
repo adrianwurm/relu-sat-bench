@@ -99,6 +99,7 @@ instance is reproducible from its seed.
 
 ```bash
 python generate_properties.py <seed> [output folder]     # VNN-COMP convention, default folder: benchmark/
+python generate_properties.py <seed> [output folder] --neurocodebench         # the second set, see below
 python generate_properties.py <seed> [output folder] --threshold-in-network   # variant, see below
 python generate_properties.py <seed> [output folder] --scaling                # larger formulas, see below
 python generate_properties.py <seed> [output folder] --sample --neurocodebench  # comparison, see below
@@ -129,6 +130,15 @@ ranges from "every tool solves it" to "no tool solves it", and then frozen. Sati
 formulas get separate ladders, because α,β-CROWN refutes much larger formulas than it can find
 counterexamples for. Instances are never selected individually by tool results, and the evaluation uses a
 different seed than the pilot.
+
+**The second set (`--neurocodebench`)** has 209 instances in the `sat_relu` encoding (3.5 h of timeouts),
+frozen in `NCB_SPEC`. In that encoding Marabou and branch-and-bound fail on very small formulas, while MIP
+gets to 250-300 variables and solves pigeonhole, Tseitin and ordering formulas far beyond CaDiCaL (see
+[Same formulas, other encodings](#same-formulas-other-encodings)), so every ladder starts at 10 variables and
+ends beyond MIP's limit: random formulas up to 250-400 variables, planted up to 300, pigeonhole up to 14 holes,
+Tseitin up to 300 variables, ordering up to n = 20. Ten of its formulas are beyond CaDiCaL within 60 s
+(pigeonhole h11-h14, Tseitin from 150 variables); their answers come from the construction. With seed 1, its
+73 formulas of sizes that also occur in `SPEC` are identical to those of the first set.
 
 **`--scaling`** builds 65 larger formulas (random up to 200 variables, pigeonhole h8–h10, ordering n9–n12,
 Tseitin up to 60 variables) for a separate scaling experiment. It is not part of the benchmark set: MIP

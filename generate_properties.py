@@ -15,7 +15,9 @@ Options (after the seed and the folder):
   --sample                 one formula per size of the frozen set (57 instances): the formulas with index
                            000, identical to those of the frozen set built with the same seed
   --neurocodebench         the neurocodebench encoding (the construction of the VNN-COMP 2025 benchmark
-                           sat_relu) instead of compact; not together with --threshold-in-network
+                           sat_relu) instead of compact; not together with --threshold-in-network. Without one
+                           of the set options it builds the second benchmark set (NCB_SPEC, 209 instances),
+                           whose ladders reach the limits of the tools in that encoding
   --two-constraints        unsafe set m - 1/2 <= Y_0 <= m: the same set, written as two constraints, which
                            alpha,beta-CROWN's MIP mode handles differently; compact only, not together with
                            --threshold-in-network
@@ -99,6 +101,24 @@ def sample_spec(spec: list[list[str]]) -> list[list[str]]:
             for command in spec]
 
 
+# The second benchmark set, in the neurocodebench encoding (frozen 20 Nov 2026, 209 instances, use with seed 1).
+# In that encoding Marabou and branch-and-bound fail on very small formulas, while alpha,beta-CROWN's MIP mode
+# gets to 250-300 variables (random, planted) and solves pigeonhole, Tseitin and ordering formulas far beyond
+# what CaDiCaL manages (step 5b of the walkthrough). So every ladder starts small and ends beyond MIP's limit.
+# With seed 1 the formulas of sizes that also occur in SPEC (10, 20, 50 ...) are identical to those of SPEC.
+NCB_SPEC = [
+    ["random", "--vars", "10", "20", "50", "100", "200", "300", "400", "--ratio", "3.5", "--count", "5"],
+    ["planted", "--vars", "10", "20", "50", "100", "150", "200", "250", "300", "--ratio", "4.26", "--count", "5"],
+    # phase transition: up to 250 only, because CaDiCaL needs 20-50 s for the unsatisfiable ones at n = 300 (too
+    # close to the 60 s the generator gives it; a slower machine would drop formulas)
+    ["random", "--vars", "10", "20", "50", "100", "150", "200", "225", "250", "--ratio", "4.26", "--count", "5"],
+    ["random", "--vars", "10", "20", "50", "100", "150", "200", "250", "300", "--ratio", "5", "--count", "5"],
+    ["pigeonhole", "--holes", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"],
+    ["tseitin", "--vertices", "6", "8", "10", "14", "20", "30", "40", "60", "100", "140", "200", "--count", "2"],
+    ["tseitin", "--vertices", "6", "10", "20", "40", "60", "--count", "2", "--parity", "even"],
+    ["ordering", "--size", "4", "5", "6", "8", "10", "12", "14", "16", "18", "20"],
+]
+
 TIMEOUT = 60.0          # seconds per verifier run (instances.csv)
 ENCODINGS = ["compact"]
 SETS = {"--pilot": "pilot", "--scaling": "scaling", "--large": "large", "--sample": "sample"}
@@ -109,7 +129,7 @@ class Arguments(NamedTuple):
     seed: int
     out: Path
     threshold_in_network: bool
-    set_name: str     # "benchmark" (the frozen SPEC), "pilot", "scaling", "large" or "sample"
+    set_name: str     # "benchmark" (the frozen SPEC, or NCB_SPEC with neurocodebench), "pilot", "scaling", ...
     encoding: str     # "compact" or "neurocodebench"
     two_constraints: bool = False
 
@@ -139,8 +159,8 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     seed, out, threshold_in_network, name, encoding, two_constraints = parsed
-    spec = {"benchmark": SPEC, "pilot": PILOT_SPEC, "scaling": SCALING_SPEC, "large": LARGE_SPEC,
-            "sample": sample_spec(SPEC)}[name]
+    spec = {"benchmark": NCB_SPEC if encoding == "neurocodebench" else SPEC, "pilot": PILOT_SPEC,
+            "scaling": SCALING_SPEC, "large": LARGE_SPEC, "sample": sample_spec(SPEC)}[name]
     rows = build(out, seed, spec, TIMEOUT, [encoding], threshold_in_network=threshold_in_network,
                  two_constraints=two_constraints)
     print(f"benchmark written to {out} ({len(rows)} instances)")

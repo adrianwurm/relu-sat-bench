@@ -295,7 +295,8 @@ def count_instances(spec) -> int:
 
 def test_generate_properties_spec_is_valid_and_within_the_vnncomp_cap():
     script = load_script()
-    for spec in (script.SPEC, script.PILOT_SPEC, script.SCALING_SPEC, script.LARGE_SPEC, script.sample_spec(script.SPEC)):
+    for spec in (script.SPEC, script.PILOT_SPEC, script.SCALING_SPEC, script.LARGE_SPEC, script.NCB_SPEC,
+                 script.sample_spec(script.SPEC)):
         assert count_instances(spec) * script.TIMEOUT * len(script.ENCODINGS) <= VNNCOMP_MAX_TOTAL_SECONDS
 
 
@@ -307,6 +308,7 @@ def test_generate_properties_spec_is_frozen():
     assert count_instances(script.SCALING_SPEC) == 65
     assert count_instances(script.sample_spec(script.SPEC)) == 57
     assert count_instances(script.LARGE_SPEC) == 45
+    assert count_instances(script.NCB_SPEC) == 209
     assert script.TIMEOUT == 60.0 and script.ENCODINGS == ["compact"]
 
 
@@ -368,3 +370,18 @@ def test_two_constraints_variant(tmp_path):
         export(tmp_path / "two", encodings=["compact"], verbose=False, two_constraints=True, threshold_in_network=True)
     with pytest.raises(ValueError):
         export(tmp_path / "two", encodings=["neurocodebench"], verbose=False, two_constraints=True)
+
+
+def test_ncb_set_shares_the_formulas_of_overlapping_sizes_with_the_frozen_set():
+    script = load_script()
+    parser = generate.build_parser()
+
+    def formulas(spec):
+        return {name: formula.cnf for command in spec
+                for name, _, formula in generate._instances(parser.parse_args(["--out", "unused", "--seed", "1",
+                                                                               *command]))}
+    frozen, ncb = formulas(script.SPEC), formulas(script.NCB_SPEC)
+    common = set(frozen) & set(ncb)
+    assert len(common) >= 60
+    assert all(frozen[name] == ncb[name] for name in common)
+    assert script.parse_args(["1", "x", "--neurocodebench"]).set_name == "benchmark"
