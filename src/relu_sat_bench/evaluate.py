@@ -93,6 +93,7 @@ class Run:
     encoding: str = "compact"
     num_literals: int | None = None   # literal occurrences in the CNF, if the CNF file is available
     output_constraints: int = 1       # constraints of the unsafe set in the VNN-LIB file
+    sat_solved: bool = True           # False: CaDiCaL hit its time limit, the answer comes from the construction
 
     @property
     def solved(self) -> bool:
@@ -137,10 +138,18 @@ def literal_counts(bench: Path) -> dict[str, int]:
     return counts
 
 
+def sat_solved(bench: Path) -> dict[str, bool]:
+    """Per formula, whether CaDiCaL decided it in the generator (``formulas.csv``, column ``solver_status``)."""
+    if not (bench / "formulas.csv").exists():
+        return {}
+    return {row["id"]: row.get("solver_status", "sat") in ("sat", "unsat") for row in _read_csv(bench / "formulas.csv")}
+
+
 def load_runs(bench: Path, reruns: bool = False) -> list[Run]:
     """All runs in ``bench/results``: the first runs, or (``reruns=True``) only the diagnostic re-runs."""
     meta = {row["onnx"]: row for row in _read_csv(bench / "metadata.csv")}
     literals = literal_counts(bench)
+    solved_by_sat = sat_solved(bench)
     runs = []
     for results in sorted((bench / "results").glob("*.csv")):
         if results.stem.endswith(RERUN_SUFFIX) != reruns:
@@ -158,6 +167,7 @@ def load_runs(bench: Path, reruns: bool = False) -> list[Run]:
                 num_literals=literals.get(info["formula_id"]),
                 output_constraints=int(info.get("output_constraints") or
                                        (2 if info.get("encoding") == "neurocodebench" else 1)),
+                sat_solved=solved_by_sat.get(info["formula_id"], True),
             ))
     return runs
 
@@ -232,7 +242,10 @@ def cells(runs: list[Run]) -> list[dict]:
             mine = [r for r in group if r.tool == tool]
             row[tool] = f"{sum(r.solved for r in mine)}/{len(mine)}" if mine else ""
         sat_times = [f.sat_seconds for f in formulas.values()]
-        row[f"{SAT_SOLVER} max s"] = max(sat_times)
+        if all(f.sat_solved for f in formulas.values()):
+            row[f"{SAT_SOLVER} max s"] = max(sat_times)
+        else:  # CaDiCaL hit its time limit on at least one formula of this size
+            row[f"{SAT_SOLVER} max s"] = f"> {_fmt(max(sat_times))}"
         rows.append(row)
     return rows
 
@@ -308,10 +321,9 @@ def limits(runs: list[Run]) -> list[dict]:
                     return {"vars": None, "clauses": None, "relus": None, "nonzero": None, "params": None}
                 group = by_size[n]
                 run = group[0]
-                literals = [r.num_literals for r in group]
                 nonzero = [nonzero_parameters(r.encoding, n, r.num_clauses, r.num_literals) for r in group]
                 return {"vars": n, "clauses": max(r.num_clauses for r in group), "relus": max(r.num_relus for r in group),
-                        "nonzero": None if None in literals else max(nonzero),
+                        "nonzero": None if None in nonzero else max(nonzero),   # None: unknown for this encoding
                         "params": max(dense_parameters(r.encoding, n, r.num_clauses) or 0 for r in group) or None}
 
             solved, failed = size(last_ok), size(fails)
@@ -344,9 +356,16 @@ def _section(title: str, runs: list[Run]) -> list[str]:
         row["tool"] = label(row["tool"])
     out += [_md_table(summary, list(summary[0])), ""]
     formulas = formulas_of(runs)
-    sat_times = sorted(f.sat_seconds for f in formulas.values())
-    out += [f"{SAT_SOLVER} solved all {len(formulas)} formulas; at most {_fmt(sat_times[-1])} s, "
-            f"median {_fmt(statistics.median(sat_times))} s.", ""]
+    sat_times = sorted(f.sat_seconds for f in formulas.values() if f.sat_solved)
+    unsolved = sum(not f.sat_solved for f in formulas.values())
+    if not unsolved:
+        out += [f"{SAT_SOLVER} solved all {len(formulas)} formulas; at most {_fmt(sat_times[-1])} s, "
+                f"median {_fmt(statistics.median(sat_times))} s.", ""]
+    else:
+        solved_text = (f"; at most {_fmt(sat_times[-1])} s, median {_fmt(statistics.median(sat_times))} s"
+                       if sat_times else "")
+        out += [f"{SAT_SOLVER} solved {len(sat_times)} of {len(formulas)} formulas{solved_text}. On the other "
+                f"{unsolved} it hit its time limit in the generator; their answers come from the construction.", ""]
     out += ["### Solved instances per family and size", ""]
     table = cells(runs)
     columns = ["series", "expected", "vars", "instances", *tools, f"{SAT_SOLVER} max s"]
@@ -685,7 +704,7 @@ def plot_cactus(runs: list[Run], out: Path) -> Path:
     total = len(formulas)
     for tool in [*tools_of(runs), None]:
         if tool is None:
-            times = sorted(max(f.sat_seconds, 1e-4) for f in formulas.values())
+            times = sorted(max(f.sat_seconds, 1e-4) for f in formulas.values() if f.sat_solved)
         else:
             times = sorted(r.seconds for r in runs if r.tool == tool and r.solved)
         _line(ax, times, range(1, len(times) + 1), tool, markers=False)

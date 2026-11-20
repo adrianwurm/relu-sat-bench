@@ -204,13 +204,18 @@ instances need a (free academic) license file.
 
 - **No tool gave a wrong answer** on this set. Every counterexample was checked independently. (Marabou did on
   formulas of the `sat_relu` benchmark, see [Same formulas, other encodings](#same-formulas-other-encodings).)
-- **Every verifier fails on formulas a SAT solver handles in milliseconds.** The scaling experiment continues
-  the ladders for the strongest tool, α,β-CROWN's MIP mode, which hands the problem to Gurobi. In the compact
-  encoding it finds its limit at about 100 variables for unsatisfiable random 3-SAT, about 45 for Tseitin formulas and n = 10 for the
+- **Every verifier fails on networks with fewer than 1,000 nonzero parameters, built from formulas a SAT solver
+  handles in milliseconds.** The smallest networks at which a tool fails (it solves less than half from that size
+  on, 60 s each) have 256 nonzero parameters for Marabou, 303 for branch-and-bound and 833 for MIP (Tseitin
+  formulas with 48 variables); table "Network size at each tool's limit" in [`report/summary.md`](report/summary.md).
+  The scaling experiment continues
+  the ladders for the strongest tool, α,β-CROWN's MIP mode, which hands the problem to Gurobi. It finds its
+  limit at about 100 variables for unsatisfiable random 3-SAT, about 45 for Tseitin formulas and n = 10 for the
   ordering principle. CaDiCaL needs at most 0.04 s for the formulas at these limits. Pigeonhole formulas are the
-  exception: they are hard for CDCL as well (59 s at 10 holes), and Gurobi fails at the same size. These limits
-  belong to the compact encoding: in the `sat_relu` encoding the same MIP mode solves the whole scaling set (see
-  [Same formulas, other encodings](#same-formulas-other-encodings)).
+  exception: they are hard for CDCL as well (59 s at 10 holes), and Gurobi fails at the same size. In the
+  `sat_relu` encoding the same MIP mode gets much further and fails only where CaDiCaL needs seconds (see
+  [Same formulas, other encodings](#same-formulas-other-encodings)); Marabou and branch-and-bound fail early in
+  every encoding.
 - **The hard networks are small.** At the size where a tool first solves less than half of a family, the
   networks have 10–200 inputs and encode 40–850 clauses. Stored as ONNX files they have 1.2k–420k parameters,
   but almost all of these are zeros: each literal neuron reads one input and each clause neuron only its
@@ -281,9 +286,11 @@ wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report
   encoding (their clauses have a median of 32 literals, so almost every 0/1 point is a solution). Their
   unsatisfiable formulas are easy only for MIP in their own encoding.
 - **Our formulas stay hard for Marabou and branch-and-bound in the `sat_relu` encoding**, not for MIP: it solves
-  all 57, and also the whole scaling set (up to 200 variables, Gurobi at most 17 s), including the Tseitin,
-  ordering, planted and pigeonhole formulas it cannot solve in compact. Where MIP stops in that encoding is
-  still open.
+  all 57, the whole scaling set, and on a further set of 45 larger formulas
+  ([`report/large-ncb/summary.md`](report/large-ncb/summary.md)) it gets up to 250 variables for random formulas
+  and fails at 300, where CaDiCaL needs 1-3 s. On pigeonhole (up to 14 holes) and Tseitin formulas (up to 300
+  variables) it beats CaDiCaL by far: Gurobi needs at most 1.2 s, CaDiCaL gives up after 60 s from 11 holes and
+  150 variables on. Planted formulas with 300 or more variables are hard for both.
 - **Marabou 2.0.0 answered "sat" on 17 unsatisfiable `sat_relu` formulas** (23 runs over the three encodings).
   The returned assignments violate one of Marabou's own ReLU constraints by 1, so this is not a rounding issue
   in our check. On our own formulas Marabou gave no wrong answer.

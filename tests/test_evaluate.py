@@ -241,3 +241,31 @@ def test_two_constraint_variant_is_a_setup_of_its_own(tmp_path):
     assert (summary["compact"]["correct"], summary["compact (2 constraints)"]["correct"]) == (2, 4)
     assert summary["compact (2 constraints)"]["only here"] == 2
     assert ev.Run.setup.fget(runs[0]) == "compact"
+
+
+def test_summary_of_a_neurocodebench_folder(tmp_path):
+    """Nonzero parameters are only known for compact; the limits table leaves them empty, not crashes."""
+    bench = write_bench(tmp_path / "ncb", FORMULAS, {"abcrown-mip": [OK_SAT, TIMEOUT, OK_UNSAT, OK_UNSAT, TIMEOUT]},
+                        encoding="neurocodebench")
+    rows = ev.limits(ev.load_runs(bench))
+    assert rows and all(row["solved nonzero"] is None for row in rows)
+    assert any(row["solved params"] for row in rows)
+    assert ev.main(["--bench", str(bench), "--out", str(tmp_path / "r"), "--no-figures"]) == 0
+
+
+def test_formulas_answered_by_construction(tmp_path):
+    """CaDiCaL timeouts in the generator (answer from the construction) are reported as such, not as solved."""
+    bench = write_bench(tmp_path / "b", FORMULAS, {"abcrown-mip": [OK_SAT, TIMEOUT, OK_UNSAT, OK_UNSAT, TIMEOUT]})
+    with (bench / "formulas.csv").open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["id", "solver_status", "cnf_file"])
+        writer.writeheader()
+        for fid, *_ in FORMULAS:
+            writer.writerow({"id": fid, "solver_status": "timeout" if fid == "pigeonhole-h4" else "sat",
+                             "cnf_file": f"cnf/{fid}.cnf"})
+    runs = ev.load_runs(bench)
+    assert [r.sat_solved for r in runs if r.formula_id == "pigeonhole-h4"] == [False]
+    cell = {(r["series"], r["vars"]): r for r in ev.cells(runs)}
+    assert str(cell[("pigeonhole", 20)]["CaDiCaL max s"]).startswith("> ")
+    assert ev.main(["--bench", str(bench), "--out", str(tmp_path / "r"), "--no-figures"]) == 0
+    text = (tmp_path / "r" / "summary.md").read_text(encoding="utf-8")
+    assert "CaDiCaL solved 4 of 5 formulas" in text and "from the construction" in text
