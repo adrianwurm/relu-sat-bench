@@ -255,10 +255,12 @@ instances need a (free academic) license file.
   (up to 20 variables). In this configuration branch-and-bound never reads off a counterexample, not even
   in regions where every ReLU is fixed. Marabou is the other way round: better at finding than at proving.
 - **Ten times more time moves the limits for proofs, hardly for finding.** Rerun with 600 s instead of 60 s at
-  each tool's first failing size ([`report/long-timeout.md`](report/long-timeout.md)), branch-and-bound proves
-  all 8 unsatisfiable instances there and MIP 7 of 9, so these limits move by at least one size step. Marabou
-  proves none of its 10 and finds 3 of 10 counterexamples; branch-and-bound finds none, because it gives up
-  after 50-103 s ("all nodes are split"), long before the timeout.
+  each tool's first failing sizes ([`report/long-timeout.md`](report/long-timeout.md)), branch-and-bound proves
+  19 of 21 unsatisfiable instances (first two failing sizes) and MIP 14 of 18, so for proofs both get at least two
+  size steps further, e.g. random unsatisfiable formulas from 60 to 80 (branch-and-bound) and from 120 to 150
+  variables (MIP). For proofs the limits above are limits of the 60 s timeout. Marabou proves none of its 10 and
+  finds 3 of 10 counterexamples at its first failing size; branch-and-bound finds none, because it gives up after
+  50-103 s ("all nodes are split"), long before the timeout.
 - **Two problems in α,β-CROWN came up.** Its MIP mode compares single-constraint properties with 0 instead of
   their right-hand side (reported as [issue #111](https://github.com/Verified-Intelligence/alpha-beta-CROWN/issues/111);
   the `--threshold-in-network` variant works around it), and about 1 run in 25 in MIP mode
