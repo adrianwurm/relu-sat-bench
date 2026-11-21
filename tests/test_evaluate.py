@@ -300,3 +300,53 @@ def test_long_timeout_report(tmp_path):
     assert ev.main(["--long", str(long), "--out", str(tmp_path / "r")]) == 0
     text = (tmp_path / "r" / "long-timeout.md").read_text(encoding="utf-8")
     assert text.startswith("# A longer timeout") and "timeout (gave up)" in text
+
+
+def test_hung_runs_are_recognised_by_the_end_of_the_log():
+    assert ev.is_hung("mip solver model built in 0.1 seconds.\nStarting MIP solver for these labels: [0]\n\n")
+    assert not ev.is_hung("Starting MIP solver for these labels: [0]\nsolving MIP for lay/17_0, status:2\nTime: 63.9")
+    assert not ev.is_hung("Academic license - for non-commercial use only")   # Gurobi still running: not a hang
+    assert not ev.is_hung("")
+
+
+def test_mark_hangs_and_the_first_real_failure(tmp_path):
+    """A hung run is left out of the first real failure, but still counts as unsolved for "fails"."""
+    formulas = [(f"random-n{n}-r5-s1-00{i}", "random", "unsat", n, 0.001) for n in (10, 20, 30) for i in (0, 1)]
+    #             n=10: hung, solved   n=20: solved, solved   n=30: real timeout, real timeout
+    bench = write_bench(tmp_path / "shifted", formulas, {"abcrown-mip": [TIMEOUT, OK_UNSAT, OK_UNSAT, OK_UNSAT,
+                                                                         TIMEOUT, TIMEOUT]})
+    logs = bench / "results" / "logs" / "abcrown-mip"
+    logs.mkdir(parents=True)
+    (logs / "f0001.log").write_text("model built\nStarting MIP solver for these labels: [0]\n", encoding="utf-8")
+    for stem in ("f0005", "f0006"):
+        (logs / f"{stem}.log").write_text("Starting MIP solver for these labels: [0]\nTime: 61.2\n", encoding="utf-8")
+    assert ev.main(["--mark-hangs", str(bench)]) == 0
+    assert (bench / "hangs.csv").read_text(encoding="utf-8") == "tool,onnx\nabcrown-mip,onnx/f0001.onnx\n"
+    runs = ev.load_runs(bench)
+    assert [r.hung for r in runs] == [True, False, False, False, False, False]
+    (row,) = ev.limits(runs)
+    assert row["first vars"] == 30                       # without the hang, the first unsolved size is 30
+    assert (row["solved vars"], row["fails vars"]) == (20, 30)
+    without_file = write_bench(tmp_path / "plain", formulas, {"abcrown-mip": [TIMEOUT, OK_UNSAT, OK_UNSAT, OK_UNSAT,
+                                                                              TIMEOUT, TIMEOUT]})
+    (row,) = ev.limits(ev.load_runs(without_file))       # no hangs.csv: every timeout is a real failure
+    assert row["first vars"] == 10
+
+
+def test_mark_hangs_needs_every_log(tmp_path):
+    bench = write_bench(tmp_path / "b", FORMULAS, {"abcrown-mip": [OK_SAT, OK_SAT, OK_UNSAT, OK_UNSAT, TIMEOUT]})
+    with pytest.raises(FileNotFoundError):
+        ev.find_hangs(bench)
+
+
+def test_smallest_limits_per_tool():
+    rows = [{"tool": "t", "series": "a", "expected": "sat", "first vars": 12, "first nonzero": 300,
+             "fails vars": 14, "fails nonzero": 350},
+            {"tool": "t", "series": "b", "expected": "unsat", "first vars": 10, "first nonzero": 250,
+             "fails vars": 20, "fails nonzero": 400},
+            {"tool": "u", "series": "a", "expected": "sat", "first vars": None, "first nonzero": None,
+             "fails vars": None, "fails nonzero": None}]
+    t, u = ev.smallest_limits(rows)
+    assert (t["first nonzero"], t["first where"]) == (250, "b (unsat), 10 inputs")
+    assert (t["fails nonzero"], t["fails where"]) == (350, "a (sat), 14 inputs")
+    assert u["first nonzero"] is None and u["fails where"] is None

@@ -54,14 +54,14 @@ CaDiCaL solved 32 of 45 formulas; at most 40.5 s, median 0.2 s. On the other 13 
 
 ## Network size at each tool's limit
 
-Benchmark set and scaling experiment together. *Solved*: the largest size at which the tool solved at least half of the instances. *Fails*: the next size, from which on it solves less than half. Inputs = variables of the formula. Every ReLU of these networks is unstable on the input box (both phases occur), so the ReLU count is also the number of unstable ReLUs. *Parameters as stored* counts the full weight matrices of the ONNX file, zeros included, as VNN-COMP does; almost all of them are zero, because each literal neuron reads one input and each clause neuron reads only its literals. *Nonzero parameters* is what the network really needs (– if the CNF files are not available). Sizes are the largest of the instances at that size.
+Benchmark set and scaling experiment together. *Solved*: the largest size at which the tool solved at least half of the instances. *Fails*: the next size, from which on it solves less than half. Inputs = variables of the formula. Every ReLU of these networks is unstable on the input box (both phases occur), so the ReLU count is also the number of unstable ReLUs. *Parameters as stored* counts the full weight matrices of the ONNX file, zeros included, as VNN-COMP does; almost all of them are zero, because each literal neuron reads one input and each clause neuron reads only its literals. *Nonzero parameters* is what the network really needs (– if the CNF files are not available). Sizes are the largest of the instances at that size. *First real failure*: the smallest size with an unsolved instance; MIP runs that hung (listed in `hangs.csv`: the log ends with "Starting MIP solver", no output of the MIP solve) are left out there, because they are a fault of the tool, not of the instance size. They still count for *solved* and *fails*.
 
-| tool | series | answer | solved up to (inputs) | fails at: inputs | clauses | ReLUs | nonzero parameters | parameters as stored |
-|---|---|---|---|---|---|---|---|---|
-| α,β-CROWN (MIP) | ordering | unsat | 190 | – | – | – | – | – |
-| α,β-CROWN (MIP) | pigeonhole | unsat | 210 | – | – | – | – | – |
-| α,β-CROWN (MIP) | planted r4.26 | sat | – | 300 | 1278 | 1878 | – | 569036 |
-| α,β-CROWN (MIP) | random r4.26 | sat | 250 | – | – | – | – | – |
-| α,β-CROWN (MIP) | random r4.26 | unsat | 250 | – | – | – | – | – |
-| α,β-CROWN (MIP) | random r5 | unsat | 250 | 300 | 1500 | 2100 | – | 636302 |
-| α,β-CROWN (MIP) | tseitin odd | unsat | 300 | – | – | – | – | – |
+| tool | series | answer | first real failure: inputs | nonzero parameters | solved up to (inputs) | fails at: inputs | clauses | ReLUs | nonzero parameters | parameters as stored |
+|---|---|---|---|---|---|---|---|---|---|---|
+| α,β-CROWN (MIP) | ordering | unsat | – | – | 190 | – | – | – | – | – |
+| α,β-CROWN (MIP) | pigeonhole | unsat | – | – | 210 | – | – | – | – | – |
+| α,β-CROWN (MIP) | planted r4.26 | sat | 300 | – | – | 300 | 1278 | 1878 | – | 569036 |
+| α,β-CROWN (MIP) | random r4.26 | sat | – | – | 250 | – | – | – | – | – |
+| α,β-CROWN (MIP) | random r4.26 | unsat | – | – | 250 | – | – | – | – | – |
+| α,β-CROWN (MIP) | random r5 | unsat | 300 | – | 250 | 300 | 1500 | 2100 | – | 636302 |
+| α,β-CROWN (MIP) | tseitin odd | unsat | – | – | 300 | – | – | – | – | – |

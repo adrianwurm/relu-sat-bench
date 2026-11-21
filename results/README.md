@@ -19,6 +19,7 @@ which the generator recomputes; and the tool logs.
 | `cnf/` | the formulas in DIMACS format (not in the `satrelu-*` folders, see below) |
 | `results/<tool>.csv` | one row per instance and run: the tool's answer, `verdict` (`correct`, `wrong`, `timeout`, ...), run time in seconds, and for every counterexample the independent check (`cex_check`) |
 | `results/abcrown-mip-rerun.csv` | diagnostic re-runs of the MIP runs that hung before Gurobi started; the tables count the first run |
+| `hangs.csv` | in every folder with MIP runs: the first runs that hung (their log ends with "Starting MIP solver", no output of the MIP solve); written from the logs by `python -m relu_sat_bench.evaluate --mark-hangs <folder>`. Only the "first real failure" in `summary.md` leaves them out; every other table counts them as unsolved |
 
 The column meanings are documented in [`run.py`](../src/relu_sat_bench/run.py) (`RESULT_COLUMNS`) and
 [`export.py`](../src/relu_sat_bench/export.py) (`METADATA_COLUMNS`). Tools: `marabou` (Marabou 2.0.0),

@@ -88,3 +88,16 @@ def test_no_logs_or_networks():
     """Only CSV files and formulas: no tool logs (they contain licence ids), no networks or properties."""
     suffixes = {path.suffix for path in RESULTS.rglob("*") if path.is_file()}
     assert suffixes <= {".csv", ".cnf", ".md"}
+
+
+def test_hangs_files():
+    """Every folder with MIP runs has hangs.csv (written by --mark-hangs from the logs, which are not included);
+    it lists only MIP first runs that timed out."""
+    for results in sorted(RESULTS.glob("*/results/abcrown-mip.csv")):
+        folder = results.parent.parent
+        assert (folder / "hangs.csv").exists(), f"{folder.name}: hangs.csv missing"
+        with results.open(newline="", encoding="utf-8") as f:
+            verdicts = {row["onnx"]: row["verdict"] for row in csv.DictReader(f)}
+        with (folder / "hangs.csv").open(newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                assert row["tool"] == "abcrown-mip" and verdicts[row["onnx"]] == "timeout"

@@ -113,37 +113,37 @@ CaDiCaL solved 199 of 209 formulas; at most 37.8 s, median 0.0014 s. On the othe
 
 ## Network size at each tool's limit
 
-Benchmark set and scaling experiment together. *Solved*: the largest size at which the tool solved at least half of the instances. *Fails*: the next size, from which on it solves less than half. Inputs = variables of the formula. Every ReLU of these networks is unstable on the input box (both phases occur), so the ReLU count is also the number of unstable ReLUs. *Parameters as stored* counts the full weight matrices of the ONNX file, zeros included, as VNN-COMP does; almost all of them are zero, because each literal neuron reads one input and each clause neuron reads only its literals. *Nonzero parameters* is what the network really needs (– if the CNF files are not available). Sizes are the largest of the instances at that size.
+Benchmark set and scaling experiment together. *Solved*: the largest size at which the tool solved at least half of the instances. *Fails*: the next size, from which on it solves less than half. Inputs = variables of the formula. Every ReLU of these networks is unstable on the input box (both phases occur), so the ReLU count is also the number of unstable ReLUs. *Parameters as stored* counts the full weight matrices of the ONNX file, zeros included, as VNN-COMP does; almost all of them are zero, because each literal neuron reads one input and each clause neuron reads only its literals. *Nonzero parameters* is what the network really needs (– if the CNF files are not available). Sizes are the largest of the instances at that size. *First real failure*: the smallest size with an unsolved instance; MIP runs that hung (listed in `hangs.csv`: the log ends with "Starting MIP solver", no output of the MIP solve) are left out there, because they are a fault of the tool, not of the instance size. They still count for *solved* and *fails*.
 
-| tool | series | answer | solved up to (inputs) | fails at: inputs | clauses | ReLUs | nonzero parameters | parameters as stored |
-|---|---|---|---|---|---|---|---|---|
-| Marabou | ordering | unsat | 10 | 15 | 46 | 76 | – | 1370 |
-| Marabou | pigeonhole | unsat | – | 12 | 22 | 46 | – | 692 |
-| Marabou | planted r4.26 | sat | 10 | 20 | 85 | 125 | – | 2877 |
-| Marabou | random r3.5 | sat | 50 | 100 | 350 | 550 | – | 56652 |
-| Marabou | random r4.26 | sat | 50 | 100 | 426 | 626 | – | 64480 |
-| Marabou | random r4.26 | unsat | 10 | 20 | 85 | 125 | – | 2877 |
-| Marabou | random r5 | sat | 10 | 100 | 500 | 700 | – | 72102 |
-| Marabou | random r5 | unsat | 10 | 20 | 100 | 140 | – | 3222 |
-| Marabou | tseitin even | sat | 90 | – | – | – | – | – |
-| Marabou | tseitin odd | unsat | 9 | 12 | 32 | 56 | – | 842 |
-| α,β-CROWN (BaB) | ordering | unsat | – | 6 | 12 | 24 | – | 218 |
-| α,β-CROWN (BaB) | pigeonhole | unsat | – | 12 | 22 | 46 | – | 692 |
-| α,β-CROWN (BaB) | planted r4.26 | sat | 20 | 50 | 213 | 313 | – | 16591 |
-| α,β-CROWN (BaB) | random r3.5 | sat | 20 | 50 | 175 | 275 | – | 14577 |
-| α,β-CROWN (BaB) | random r4.26 | sat | 20 | 50 | 213 | 313 | – | 16591 |
-| α,β-CROWN (BaB) | random r4.26 | unsat | – | 10 | 43 | 63 | – | 821 |
-| α,β-CROWN (BaB) | random r5 | sat | – | 10 | 50 | 70 | – | 912 |
-| α,β-CROWN (BaB) | random r5 | unsat | – | 10 | 50 | 70 | – | 912 |
-| α,β-CROWN (BaB) | tseitin even | sat | 60 | 90 | 240 | 420 | – | 39062 |
-| α,β-CROWN (BaB) | tseitin odd | unsat | – | 9 | 24 | 42 | – | 506 |
-| α,β-CROWN (MIP) | ordering | unsat | 190 | – | – | – | – | – |
-| α,β-CROWN (MIP) | pigeonhole | unsat | 210 | – | – | – | – | – |
-| α,β-CROWN (MIP) | planted r4.26 | sat | 250 | 300 | 1278 | 1878 | – | 569036 |
-| α,β-CROWN (MIP) | random r3.5 | sat | 400 | – | – | – | – | – |
-| α,β-CROWN (MIP) | random r4.26 | sat | 250 | – | – | – | – | – |
-| α,β-CROWN (MIP) | random r4.26 | unsat | 250 | – | – | – | – | – |
-| α,β-CROWN (MIP) | random r5 | sat | 100 | – | – | – | – | – |
-| α,β-CROWN (MIP) | random r5 | unsat | 250 | 300 | 1500 | 2100 | – | 636302 |
-| α,β-CROWN (MIP) | tseitin even | sat | 90 | – | – | – | – | – |
-| α,β-CROWN (MIP) | tseitin odd | unsat | 300 | – | – | – | – | – |
+| tool | series | answer | first real failure: inputs | nonzero parameters | solved up to (inputs) | fails at: inputs | clauses | ReLUs | nonzero parameters | parameters as stored |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Marabou | ordering | unsat | 6 | – | 10 | 15 | 46 | 76 | – | 1370 |
+| Marabou | pigeonhole | unsat | 12 | – | – | 12 | 22 | 46 | – | 692 |
+| Marabou | planted r4.26 | sat | 10 | – | 10 | 20 | 85 | 125 | – | 2877 |
+| Marabou | random r3.5 | sat | 20 | – | 50 | 100 | 350 | 550 | – | 56652 |
+| Marabou | random r4.26 | sat | 20 | – | 50 | 100 | 426 | 626 | – | 64480 |
+| Marabou | random r4.26 | unsat | 10 | – | 10 | 20 | 85 | 125 | – | 2877 |
+| Marabou | random r5 | sat | 100 | – | 10 | 100 | 500 | 700 | – | 72102 |
+| Marabou | random r5 | unsat | 10 | – | 10 | 20 | 100 | 140 | – | 3222 |
+| Marabou | tseitin even | sat | – | – | 90 | – | – | – | – | – |
+| Marabou | tseitin odd | unsat | 12 | – | 9 | 12 | 32 | 56 | – | 842 |
+| α,β-CROWN (BaB) | ordering | unsat | 6 | – | – | 6 | 12 | 24 | – | 218 |
+| α,β-CROWN (BaB) | pigeonhole | unsat | 12 | – | – | 12 | 22 | 46 | – | 692 |
+| α,β-CROWN (BaB) | planted r4.26 | sat | 10 | – | 20 | 50 | 213 | 313 | – | 16591 |
+| α,β-CROWN (BaB) | random r3.5 | sat | 10 | – | 20 | 50 | 175 | 275 | – | 14577 |
+| α,β-CROWN (BaB) | random r4.26 | sat | 20 | – | 20 | 50 | 213 | 313 | – | 16591 |
+| α,β-CROWN (BaB) | random r4.26 | unsat | 10 | – | – | 10 | 43 | 63 | – | 821 |
+| α,β-CROWN (BaB) | random r5 | sat | 10 | – | – | 10 | 50 | 70 | – | 912 |
+| α,β-CROWN (BaB) | random r5 | unsat | 10 | – | – | 10 | 50 | 70 | – | 912 |
+| α,β-CROWN (BaB) | tseitin even | sat | 90 | – | 60 | 90 | 240 | 420 | – | 39062 |
+| α,β-CROWN (BaB) | tseitin odd | unsat | 9 | – | – | 9 | 24 | 42 | – | 506 |
+| α,β-CROWN (MIP) | ordering | unsat | – | – | 190 | – | – | – | – | – |
+| α,β-CROWN (MIP) | pigeonhole | unsat | – | – | 210 | – | – | – | – | – |
+| α,β-CROWN (MIP) | planted r4.26 | sat | 300 | – | 250 | 300 | 1278 | 1878 | – | 569036 |
+| α,β-CROWN (MIP) | random r3.5 | sat | – | – | 400 | – | – | – | – | – |
+| α,β-CROWN (MIP) | random r4.26 | sat | – | – | 250 | – | – | – | – | – |
+| α,β-CROWN (MIP) | random r4.26 | unsat | – | – | 250 | – | – | – | – | – |
+| α,β-CROWN (MIP) | random r5 | sat | – | – | 100 | – | – | – | – | – |
+| α,β-CROWN (MIP) | random r5 | unsat | 300 | – | 250 | 300 | 1500 | 2100 | – | 636302 |
+| α,β-CROWN (MIP) | tseitin even | sat | – | – | 90 | – | – | – | – | – |
+| α,β-CROWN (MIP) | tseitin odd | unsat | – | – | 300 | – | – | – | – | – |

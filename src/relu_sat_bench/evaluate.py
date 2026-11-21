@@ -21,6 +21,9 @@ Comparison of encodings (step 5b)::
 * ``--long``: folders built by :mod:`relu_sat_bench.subset` and run with a longer timeout (step 5c). Each
   instance is compared with its run in the source folder (column ``source`` of ``metadata.csv``). Writes
   ``long-timeout.md``.
+* ``--mark-hangs``: benchmark folders whose tool logs are at hand (``results/logs``). Writes ``hangs.csv`` into
+  each folder: the MIP runs of α,β-CROWN that hung (see :func:`is_hung`). The evaluation reads this file, so
+  the logs themselves are not needed later (they are not in ``results/``).
 * ``--compare``: folders with the same formulas in different encodings (the ``encoding`` column of
   ``metadata.csv``). For each tool only the formulas it ran in every one of its encodings are compared.
   Writes ``encodings-<name>.md``.
@@ -28,8 +31,8 @@ Comparison of encodings (step 5b)::
 Writes to ``--out``:
 
 * ``summary.md``: per tool the verdicts, the VNN-COMP score, solved instances per family and size next
-  to the SAT solver, the largest formula each tool solved, the network size at each tool's limit, and the
-  diagnostic re-runs;
+  to the SAT solver, the largest formula each tool solved, the network size at each tool's limit (first real
+  failure and the size from which on it fails on half), and the diagnostic re-runs;
 * ``cells.csv``: the per family/size table in machine-readable form;
 * ``solved-by-size.svg``, ``runtime-by-size.svg``, ``cactus.svg`` if matplotlib is installed
   (``pip install -e ".[report]"``).
@@ -60,6 +63,12 @@ TOOL_LABELS = {
     "abcrown-mip": "α,β-CROWN (MIP)",
 }
 TOOL_ORDER = ["marabou", "abcrown-bab", "abcrown-mip"]
+
+# Hung runs (decided 21 Nov 2026): a MIP run of α,β-CROWN whose log ends right after this line produced no output
+# of the MIP solve and was killed by the runner. A real MIP timeout ends with α,β-CROWN's own "Time: ..." line.
+HANG_MARKER = "Starting MIP solver for these labels"
+HANG_TOOL = "abcrown-mip"
+HANGS_FILE = "hangs.csv"
 
 # Panels of the figures: (series, expected answer, title), satisfiable row first.
 PANELS = [
@@ -98,6 +107,7 @@ class Run:
     output_constraints: int = 1       # constraints of the unsafe set in the VNN-LIB file
     sat_solved: bool = True           # False: CaDiCaL hit its time limit, the answer comes from the construction
     onnx: str = ""                    # the instance's ONNX file, relative to the benchmark folder
+    hung: bool = False                # listed in the folder's hangs.csv (see is_hung)
 
     @property
     def solved(self) -> bool:
@@ -149,11 +159,61 @@ def sat_solved(bench: Path) -> dict[str, bool]:
     return {row["id"]: row.get("solver_status", "sat") in ("sat", "unsat") for row in _read_csv(bench / "formulas.csv")}
 
 
+def is_hung(log_text: str) -> bool:
+    r"""Whether a timed-out MIP run of α,β-CROWN hung: its log ends with ``Starting MIP solver for these labels``.
+
+    Such a run produced no output of the MIP solve and was killed by the runner; it is a fault of the tool (a
+    repeated run solved most of them), not a sign of a hard instance. A real timeout ends with α,β-CROWN's own
+    ``Time: ...`` line, because it stops itself at its time limit.
+
+    >>> is_hung("mip solver model built in 0.1 seconds.\nStarting MIP solver for these labels: [0]\n")
+    True
+    >>> is_hung("Starting MIP solver for these labels: [0]\nTime: 63.9")
+    False
+    """
+    lines = [line for line in log_text.splitlines() if line.strip()]
+    return bool(lines) and lines[-1].startswith(HANG_MARKER)
+
+
+def find_hangs(bench: Path) -> list[dict]:
+    """The hung first runs of the MIP mode in ``bench``, from the logs in ``results/logs/<tool>/``."""
+    hangs = []
+    results = bench / "results" / f"{HANG_TOOL}.csv"
+    if not results.exists():
+        return hangs
+    for row in _read_csv(results):
+        if row["verdict"] != "timeout":
+            continue
+        log = bench / "results" / "logs" / HANG_TOOL / f"{Path(row['onnx']).stem}.log"
+        if not log.exists():
+            raise FileNotFoundError(f"no log for {row['onnx']}: {log}")
+        if is_hung(log.read_text(encoding="utf-8", errors="replace")):
+            hangs.append({"tool": HANG_TOOL, "onnx": row["onnx"]})
+    return hangs
+
+
+def write_hangs(bench: Path) -> Path:
+    """Write ``bench/hangs.csv`` (header only if no run hung)."""
+    path = bench / HANGS_FILE
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["tool", "onnx"], lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(find_hangs(bench))
+    return path
+
+
+def hung_runs(bench: Path) -> set[tuple[str, str]]:
+    """(tool, onnx) of the hung runs listed in ``bench/hangs.csv``; empty if the folder has no such file."""
+    path = bench / HANGS_FILE
+    return {(row["tool"], row["onnx"]) for row in _read_csv(path)} if path.exists() else set()
+
+
 def load_runs(bench: Path, reruns: bool = False) -> list[Run]:
     """All runs in ``bench/results``: the first runs, or (``reruns=True``) only the diagnostic re-runs."""
     meta = {row["onnx"]: row for row in _read_csv(bench / "metadata.csv")}
     literals = literal_counts(bench)
     solved_by_sat = sat_solved(bench)
+    hung = hung_runs(bench)
     runs = []
     for results in sorted((bench / "results").glob("*.csv")):
         if results.stem.endswith(RERUN_SUFFIX) != reruns:
@@ -172,6 +232,7 @@ def load_runs(bench: Path, reruns: bool = False) -> list[Run]:
                 output_constraints=int(info.get("output_constraints") or
                                        (2 if info.get("encoding") == "neurocodebench" else 1)),
                 sat_solved=solved_by_sat.get(info["formula_id"], True), onnx=row["onnx"],
+                hung=(tool, row["onnx"]) in hung,
             ))
     return runs
 
@@ -304,7 +365,8 @@ def limits(runs: list[Run]) -> list[dict]:
     """Network size at each tool's limit, per (series, expected answer).
 
     "Solved" is the largest size at which the tool solved at least half of the instances; "fails" is the next
-    size of the ladder, from which on it solves less than half at every size. On the input box every ReLU of
+    size of the ladder, from which on it solves less than half at every size. "First" is the first real failure:
+    the smallest size with an unsolved instance, hung runs left out (they still count for "solved" and "fails"). On the input box every ReLU of
     these networks is unstable (both phases occur), so the ReLU count is also the number of unstable ReLUs.
     """
     rows = []
@@ -319,6 +381,7 @@ def limits(runs: list[Run]) -> list[dict]:
             ok = [n for n in sizes if share[n] >= 0.5]
             last_ok = max(ok) if ok else None
             fails = next((n for n in sizes if last_ok is None or n > last_ok), None)
+            first = next((n for n in sizes if any(not r.solved and not r.hung for r in by_size[n])), None)
 
             def size(n):
                 if n is None:
@@ -330,11 +393,28 @@ def limits(runs: list[Run]) -> list[dict]:
                         "nonzero": None if None in nonzero else max(nonzero),   # None: unknown for this encoding
                         "params": max(dense_parameters(r.encoding, n, r.num_clauses) or 0 for r in group) or None}
 
-            solved, failed = size(last_ok), size(fails)
+            solved, failed, first_failed = size(last_ok), size(fails), size(first)
             rows.append({"tool": tool, "series": series, "expected": expected,
+                         **{f"first {k}": v for k, v in first_failed.items()},
                          **{f"solved {k}": v for k, v in solved.items()},
                          **{f"fails {k}": v for k, v in failed.items()}})
     return rows
+
+
+def smallest_limits(rows: list[dict]) -> list[dict]:
+    """Per tool, over all series: the smallest network (nonzero parameters) at the first real failure and at
+    "fails" (from which on it solves less than half), with the series it occurs in."""
+    out = []
+    for tool in dict.fromkeys(row["tool"] for row in rows):
+        mine = [row for row in rows if row["tool"] == tool]
+        entry = {"tool": tool}
+        for key in ("first", "fails"):
+            known = [row for row in mine if row[f"{key} nonzero"] is not None]
+            best = min(known, key=lambda row: row[f"{key} nonzero"]) if known else None
+            entry[f"{key} nonzero"] = best[f"{key} nonzero"] if best else None
+            entry[f"{key} where"] = f"{best['series']} ({best['expected']}), {best[f'{key} vars']} inputs" if best else None
+        out.append(entry)
+    return out
 
 
 def _fmt(value) -> str:
@@ -398,14 +478,26 @@ def write_summary(out: Path, main: list[Run], extension: list[Run], reruns: list
               "the full weight matrices of the ONNX file, zeros included, as VNN-COMP does; almost all of them are "
               "zero, because each literal neuron reads one input and each clause neuron reads only its literals. "
               "*Nonzero parameters* is what the network really needs (– if the CNF files are not available). "
-              "Sizes are the largest of the instances at that size.", ""]
+              "Sizes are the largest of the instances at that size. *First real failure*: the smallest size with an "
+              "unsolved instance; MIP runs that hung (listed in `hangs.csv`: the log ends with \"Starting MIP solver\", "
+              "no output of the MIP solve) are left out there, because they are a fault of the tool, not of the "
+              "instance size. They still count for *solved* and *fails*.", ""]
     table = limits(combine([main, extension]))
     for row in table:
         row["tool"] = label(row["tool"])
-    columns = ["tool", "series", "expected", "solved vars", "fails vars", "fails clauses", "fails relus",
-               "fails nonzero", "fails params"]
-    lines += [_md_table(table, columns, ["tool", "series", "answer", "solved up to (inputs)", "fails at: inputs",
+    columns = ["tool", "series", "expected", "first vars", "first nonzero", "solved vars", "fails vars",
+               "fails clauses", "fails relus", "fails nonzero", "fails params"]
+    lines += [_md_table(table, columns, ["tool", "series", "answer", "first real failure: inputs",
+                                         "nonzero parameters", "solved up to (inputs)", "fails at: inputs",
                                          "clauses", "ReLUs", "nonzero parameters", "parameters as stored"]), ""]
+    smallest = smallest_limits(table)
+    if any(row["first nonzero"] is not None or row["fails nonzero"] is not None for row in smallest):
+        lines += ["### Smallest networks at each tool's limit", "",
+                  "Over all series: the fewest nonzero parameters at the first real failure and at the size from "
+                  "which on the tool solves less than half.", ""]
+        lines += [_md_table(smallest, ["tool", "first nonzero", "first where", "fails nonzero", "fails where"],
+                            ["tool", "first real failure: nonzero parameters", "series, size",
+                             "fails on half: nonzero parameters", "series, size"]), ""]
     if reruns:
         lines += ["## Diagnostic re-runs", "",
                   "Runs repeated once to see whether a failure was sporadic. They do not replace the "
@@ -878,11 +970,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--compare", type=Path, nargs="+", help="folders with the same formulas in other encodings")
     parser.add_argument("--name", default="comparison", help="with --compare: writes encodings-<name>.md")
     parser.add_argument("--long", type=Path, nargs="+", help="folders run with a longer timeout (step 5c)")
+    parser.add_argument("--mark-hangs", type=Path, nargs="+", help="folders with logs: write hangs.csv into each")
     parser.add_argument("--out", type=Path, default=Path("report"))
     parser.add_argument("--no-figures", action="store_true")
     args = parser.parse_args(argv)
-    if sum(x is not None for x in (args.bench, args.compare, args.long)) != 1:
-        parser.error("give exactly one of --bench, --compare and --long")
+    if sum(x is not None for x in (args.bench, args.compare, args.long, args.mark_hangs)) != 1:
+        parser.error("give exactly one of --bench, --compare, --long and --mark-hangs")
+    if args.mark_hangs:
+        for folder in args.mark_hangs:
+            path = write_hangs(folder)
+            print("written:", path, f"({len(_read_csv(path))} hung runs)")
+        return 0
     if args.long:
         args.out.mkdir(parents=True, exist_ok=True)
         print("written:", write_long_timeout(args.out, args.long))
