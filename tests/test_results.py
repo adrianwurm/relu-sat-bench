@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from relu_sat_bench.evaluate import load_runs, main
+from relu_sat_bench import vnncomp
 from relu_sat_bench.subset import select
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -101,3 +102,11 @@ def test_hangs_files():
         with (folder / "hangs.csv").open(newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 assert row["tool"] == "abcrown-mip" and verdicts[row["onnx"]] == "timeout"
+
+
+def test_vnncomp_report_matches_results(tmp_path, capsys):
+    """report/vnncomp2025.md: the VNN-COMP data in results/vnncomp2025 and our limits from the benchmark folders."""
+    vnncomp.main(["report", "--data", str(RESULTS / "vnncomp2025"), "--bench", str(RESULTS / "final"),
+                  str(RESULTS / "final-shifted"), "--extension", str(RESULTS / "scaling-shifted"), "--out", str(tmp_path)])
+    capsys.readouterr()
+    assert (tmp_path / "vnncomp2025.md").read_bytes() == (REPORT / "vnncomp2025.md").read_bytes()

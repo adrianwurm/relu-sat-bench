@@ -250,6 +250,9 @@ the result files of all runs are in [`results/`](results/).
   Sizes of ACAS Xu and the CIFAR-100 networks: Table 3 of the VNN-COMP 2025 report (Kaulen et al.,
   arXiv:2512.19007). `sat_relu`: measured on the 98 published networks (the report gives 2–100 inputs and
   100–35k parameters).
+  At VNN-COMP 2025, the smallest network with an instance no tool solved had 55k nonzero parameters
+  (relusplitter; regular track: 575k, CORA), counted in the published networks
+  ([`report/vnncomp2025.md`](report/vnncomp2025.md); the hardware and time limits there differ from ours).
   What makes our networks hard is not their size: on the input box every ReLU is unstable, that is, depending
   on the input it is active or inactive, and the verifier has to reason about all of these switches at once.
   In local-robustness properties around a given input, the small input region usually fixes most ReLUs to one

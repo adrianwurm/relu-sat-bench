@@ -58,6 +58,24 @@ repository states no license, so these folders contain only our metadata and res
 networks. `python -m relu_sat_bench.satrelu --source <folder> --out <folder> [options]` rebuilds them from a
 download of `benchmarks/sat_relu` from `VNN-COMP/vnncomp2025_benchmarks`.
 
+## VNN-COMP 2025 (`vnncomp2025/`)
+
+For comparison, the sizes of the networks on which the verifiers of VNN-COMP 2025 failed
+([`report/vnncomp2025.md`](../report/vnncomp2025.md)). Derived from the public repositories
+`VNN-COMP/vnncomp2025_results` and `VNN-COMP/vnncomp2025_benchmarks`; no networks or properties are included.
+
+| file | content |
+|---|---|
+| `instances.csv` | per instance: benchmark, track (`regular` = scored, `extended` = unscored), index, network and property (paths in `vnncomp2025_benchmarks`), the official result (`unknown`: no tool answered) and α,β-CROWN's own result |
+| `networks.csv` | per network: parameters as stored and nonzero (every floating-point number in initializers and Constant nodes), or why it was not counted |
+
+```bash
+git clone https://github.com/VNN-COMP/vnncomp2025_results
+git clone https://github.com/VNN-COMP/vnncomp2025_benchmarks      # about 2 GB of networks
+python -m relu_sat_bench.vnncomp collect --results vnncomp2025_results --benchmarks vnncomp2025_benchmarks \
+    --out results/vnncomp2025
+```
+
 ## Regenerating the report
 
 ```bash
@@ -77,6 +95,8 @@ python -m relu_sat_bench.evaluate --compare results/final results/final-shifted 
     --name overlap --out report
 python -m relu_sat_bench.evaluate --long results/long-marabou results/long-bab results/long-mip \
     results/long2-bab results/long2-mip --out report
+python -m relu_sat_bench.vnncomp report --data results/vnncomp2025 --bench results/final \
+    results/final-shifted --extension results/scaling-shifted --out report
 ```
 
 The tables come out identical; the SVG figures show the same data, but their bytes depend on the matplotlib
