@@ -80,3 +80,15 @@ def test_write_subset(bench, tmp_path):
     assert all((out / f["cnf_file"]).exists() for f in formulas)
     with pytest.raises(SystemExit):                                  # never into an existing benchmark
         subset.main(["--bench", str(bench), "--tool", "marabou", "--out", str(out)])
+
+
+def test_skip_and_answer(bench):
+    runs = load_runs(bench)
+    first = {r.formula_id for r in subset.select(runs, "marabou", sizes=1)}
+    both = {r.formula_id for r in subset.select(runs, "marabou", sizes=2)}
+    second = {r.formula_id for r in subset.select(runs, "marabou", sizes=1, skip=1)}
+    assert second == both - first and not (second & first)
+    unsat = subset.select(runs, "marabou", sizes=2, answer="unsat")
+    assert unsat and all(r.expected == "unsat" for r in unsat)
+    assert {r.formula_id for r in unsat} == {r.formula_id for r in subset.select(runs, "marabou", sizes=2)
+                                             if r.expected == "unsat"}

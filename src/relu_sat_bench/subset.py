@@ -17,6 +17,8 @@ Usage::
     python -m relu_sat_bench.subset --bench instances/final --tool marabou --out instances/long-marabou
     python -m relu_sat_bench.subset --bench instances/final-shifted instances/scaling-shifted \\
         --tool abcrown-mip --out instances/long-mip
+    python -m relu_sat_bench.subset --bench instances/final --tool abcrown-bab --skip 1 --answer unsat \\
+        --out instances/long2-bab     # the next failing size, unsatisfiable formulas only
 """
 
 from __future__ import annotations
@@ -35,8 +37,9 @@ from relu_sat_bench.export import INSTANCES_CSV, METADATA_COLUMNS, METADATA_CSV
 from relu_sat_bench.generate import FORMULAS_CSV, read_rows, write_rows
 
 
-def failing_sizes(runs: list[Run], sizes: int = 1) -> dict[tuple[str, str], list[int]]:
-    """Per (series, answer): the first size with less than half solved, and the ``sizes - 1`` after it."""
+def failing_sizes(runs: list[Run], sizes: int = 1, skip: int = 0) -> dict[tuple[str, str], list[int]]:
+    """Per (series, answer): the first size with less than half solved and the sizes after it; of these the
+    ``sizes`` sizes after skipping ``skip``."""
     by_cell: dict[tuple[str, str], dict[int, list[Run]]] = defaultdict(lambda: defaultdict(list))
     for run in runs:
         by_cell[(run.series, run.expected)][run.num_vars].append(run)
@@ -45,14 +48,14 @@ def failing_sizes(runs: list[Run], sizes: int = 1) -> dict[tuple[str, str], list
         ordered = sorted(by_size)
         first = next((n for n in ordered if sum(r.solved for r in by_size[n]) / len(by_size[n]) < 0.5), None)
         if first is not None:
-            result[cell] = [n for n in ordered if n >= first][:sizes]
+            result[cell] = [n for n in ordered if n >= first][skip:skip + sizes]
     return result
 
 
-def select(runs: list[Run], tool: str, sizes: int = 1) -> list[Run]:
-    """The runs of ``tool`` that timed out at its failing sizes, in a fixed order."""
-    mine = [r for r in runs if r.tool == tool]
-    window = failing_sizes(mine, sizes)
+def select(runs: list[Run], tool: str, sizes: int = 1, skip: int = 0, answer: str | None = None) -> list[Run]:
+    """The runs of ``tool`` that timed out at its failing sizes, in a fixed order; ``answer``: only sat or unsat."""
+    mine = [r for r in runs if r.tool == tool and (answer is None or r.expected == answer)]
+    window = failing_sizes(mine, sizes, skip)
     chosen = [r for r in mine if r.verdict == "timeout" and r.num_vars in window.get((r.series, r.expected), [])]
     return sorted(chosen, key=lambda r: (r.series, r.expected, r.num_vars, r.formula_id))
 
@@ -108,10 +111,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--tool", required=True, help="e.g. marabou, abcrown-bab, abcrown-mip")
     parser.add_argument("--out", type=Path, required=True, help="new folder")
     parser.add_argument("--sizes", type=int, default=1, help="failing sizes per family (default 1)")
+    parser.add_argument("--skip", type=int, default=0,
+                        help="skip the first failing sizes (e.g. 1: the next size after an earlier run)")
+    parser.add_argument("--answer", choices=["sat", "unsat"], help="only formulas with this answer")
     parser.add_argument("--timeout", type=float, default=600.0, help="timeout in instances.csv (default 600 s)")
     args = parser.parse_args(argv)
     runs = [run for bench in args.bench for run in load_runs(bench)]
-    chosen = select(runs, args.tool, args.sizes)
+    chosen = select(runs, args.tool, args.sizes, args.skip, args.answer)
     if not chosen:
         raise SystemExit(f"no timeouts of {args.tool} at its failing sizes")
     write_subset(chosen, args.out, args.timeout)
