@@ -1,0 +1,99 @@
+tool,onnx,vnnlib,formula_id,family,encoding,expected,result,verdict,seconds,wall_seconds,timeout,cex_check,cex_output,num_inputs,num_relus,num_clauses,sat_solver_seconds
+marabou,onnx/f0001-paper.onnx,vnnlib/f0001.vnnlib,satrelu-v25-c40-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.013,60,,,25,295,40,0.0002
+marabou,onnx/f0002-paper.onnx,vnnlib/f0002.vnnlib,satrelu-v34-c98-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.013,60,,,34,532,98,0.0005
+marabou,onnx/f0003-paper.onnx,vnnlib/f0003.vnnlib,satrelu-v46-c142-unsat,satrelu,paper,unsat,sat,wrong,17.832,17.831,60,invalid: output 133.5 below threshold 141.5; does not decode to a satisfying assignment,133.5,46,748,142,0.0008
+marabou,onnx/f0004-paper.onnx,vnnlib/f0004.vnnlib,satrelu-v90-c111-unsat,satrelu,paper,unsat,timeout,timeout,61.108,61.106,60,,,90,963,111,0.0005
+marabou,onnx/f0005-paper.onnx,vnnlib/f0005.vnnlib,satrelu-v54-c125-sat,satrelu,paper,sat,sat,correct,1.589,1.589,60,valid,124.5,54,753,125,0.0003
+marabou,onnx/f0006-paper.onnx,vnnlib/f0006.vnnlib,satrelu-v30-c44-sat,satrelu,paper,sat,sat,correct,0.566,0.566,60,valid,43.5,30,342,44,0.0002
+marabou,onnx/f0007-paper.onnx,vnnlib/f0007.vnnlib,satrelu-v85-c207-sat,satrelu,paper,sat,sat,correct,30.213,30.212,60,valid,206.5,85,1216,207,0.0005
+marabou,onnx/f0008-paper.onnx,vnnlib/f0008.vnnlib,satrelu-v64-c234-unsat,satrelu,paper,unsat,sat,wrong,36.297,36.296,60,invalid: output 149 below threshold 233.5; does not decode to a satisfying assignment,149,64,1150,234,0.0020
+marabou,onnx/f0009-paper.onnx,vnnlib/f0009.vnnlib,satrelu-v38-c132-unsat,satrelu,paper,unsat,timeout,timeout,60.507,60.505,60,,,38,662,132,0.0006
+marabou,onnx/f0010-paper.onnx,vnnlib/f0010.vnnlib,satrelu-v16-c39-unsat,satrelu,paper,unsat,timeout,timeout,75.009,75.005,60,,,16,229,39,0.0002
+marabou,onnx/f0011-paper.onnx,vnnlib/f0011.vnnlib,satrelu-v14-c57-sat,satrelu,paper,sat,sat,correct,0.666,0.666,60,valid,57,14,269,57,0.0002
+marabou,onnx/f0012-paper.onnx,vnnlib/f0012.vnnlib,satrelu-v73-c156-unsat,satrelu,paper,unsat,sat,wrong,8.641,8.641,60,invalid: output 62 below threshold 155.5; does not decode to a satisfying assignment,62,73,979,156,0.0011
+marabou,onnx/f0013-paper.onnx,vnnlib/f0013.vnnlib,satrelu-v100-c373-unsat,satrelu,paper,unsat,timeout,timeout,62.923,62.920,60,,,100,1819,373,0.0026
+marabou,onnx/f0014-paper.onnx,vnnlib/f0014.vnnlib,satrelu-v70-c178-sat,satrelu,paper,sat,sat,correct,26.348,26.347,60,valid,177.5,70,1024,178,0.0004
+marabou,onnx/f0015-paper.onnx,vnnlib/f0015.vnnlib,satrelu-v95-c275-sat,satrelu,paper,sat,sat,correct,15.665,15.664,60,valid,274.5,95,1490,275,0.0007
+marabou,onnx/f0016-paper.onnx,vnnlib/f0016.vnnlib,satrelu-v73-c156-sat,satrelu,paper,sat,sat,correct,4.173,4.173,60,valid,155.5,73,979,156,0.0005
+marabou,onnx/f0017-paper.onnx,vnnlib/f0017.vnnlib,satrelu-v58-c75-unsat,satrelu,paper,unsat,timeout,timeout,60.705,60.703,60,,,58,631,75,0.0003
+marabou,onnx/f0018-paper.onnx,vnnlib/f0018.vnnlib,satrelu-v63-c286-sat,satrelu,paper,sat,sat,correct,21.383,21.381,60,valid,285.5,63,1299,286,0.0009
+marabou,onnx/f0019-paper.onnx,vnnlib/f0019.vnnlib,satrelu-v26-c84-sat,satrelu,paper,sat,sat,correct,1.218,1.218,60,valid,83.5,26,434,84,0.0002
+marabou,onnx/f0020-paper.onnx,vnnlib/f0020.vnnlib,satrelu-v40-c142-sat,satrelu,paper,sat,sat,correct,2.171,2.171,60,valid,141.5,40,706,142,0.0003
+marabou,onnx/f0021-paper.onnx,vnnlib/f0021.vnnlib,satrelu-v9-c9-sat,satrelu,paper,sat,sat,correct,0.415,0.415,60,valid,8.5,9,90,9,0.0001
+marabou,onnx/f0022-paper.onnx,vnnlib/f0022.vnnlib,satrelu-v91-c217-sat,satrelu,paper,sat,sat,correct,6.234,6.234,60,valid,216.5,91,1288,217,0.0006
+marabou,onnx/f0023-paper.onnx,vnnlib/f0023.vnnlib,satrelu-v25-c45-sat,satrelu,paper,sat,sat,correct,0.670,0.670,60,valid,44.5,25,310,45,0.0002
+marabou,onnx/f0024-paper.onnx,vnnlib/f0024.vnnlib,satrelu-v44-c52-sat,satrelu,paper,sat,sat,correct,0.566,0.566,60,valid,51.5,44,464,52,0.0002
+marabou,onnx/f0025-paper.onnx,vnnlib/f0025.vnnlib,satrelu-v87-c243-unsat,satrelu,paper,unsat,sat,wrong,24.793,24.791,60,invalid: output 184 below threshold 242.5; does not decode to a satisfying assignment,184,87,1338,243,0.0015
+marabou,onnx/f0026-paper.onnx,vnnlib/f0026.vnnlib,satrelu-v75-c99-unsat,satrelu,paper,unsat,timeout,timeout,60.705,60.703,60,,,75,822,99,0.0005
+marabou,onnx/f0027-paper.onnx,vnnlib/f0027.vnnlib,satrelu-v100-c373-sat,satrelu,paper,sat,sat,correct,34.124,34.123,60,valid,372.5,100,1819,373,0.0009
+marabou,onnx/f0028-paper.onnx,vnnlib/f0028.vnnlib,satrelu-v85-c186-sat,satrelu,paper,sat,sat,correct,3.175,3.175,60,valid,185.5,85,1153,186,0.0006
+marabou,onnx/f0029-paper.onnx,vnnlib/f0029.vnnlib,satrelu-v65-c187-unsat,satrelu,paper,unsat,timeout,timeout,60.806,60.803,60,,,65,1016,187,0.0013
+marabou,onnx/f0030-paper.onnx,vnnlib/f0030.vnnlib,satrelu-v44-c52-unsat,satrelu,paper,unsat,timeout,timeout,60.516,60.514,60,,,44,464,52,0.0003
+marabou,onnx/f0031-paper.onnx,vnnlib/f0031.vnnlib,satrelu-v37-c63-sat,satrelu,paper,sat,sat,correct,0.995,0.995,60,valid,62.5,37,448,63,0.0002
+marabou,onnx/f0032-paper.onnx,vnnlib/f0032.vnnlib,satrelu-v9-c14-unsat,satrelu,paper,unsat,unsat,correct,0.874,0.874,60,,,9,105,14,0.0001
+marabou,onnx/f0033-paper.onnx,vnnlib/f0033.vnnlib,satrelu-v25-c40-sat,satrelu,paper,sat,sat,correct,0.616,0.616,60,valid,39.5,25,295,40,0.0001
+marabou,onnx/f0034-paper.onnx,vnnlib/f0034.vnnlib,satrelu-v82-c130-sat,satrelu,paper,sat,sat,correct,2.472,2.472,60,valid,129.5,82,964,130,0.0004
+marabou,onnx/f0035-paper.onnx,vnnlib/f0035.vnnlib,satrelu-v63-c267-sat,satrelu,paper,sat,sat,correct,30.162,30.160,60,valid,266.5,63,1242,267,0.0005
+marabou,onnx/f0036-paper.onnx,vnnlib/f0036.vnnlib,satrelu-v54-c125-unsat,satrelu,paper,unsat,timeout,timeout,60.608,60.605,60,,,54,753,125,0.0009
+marabou,onnx/f0037-paper.onnx,vnnlib/f0037.vnnlib,satrelu-v10-c26-sat,satrelu,paper,sat,sat,correct,0.465,0.465,60,valid,26,10,148,26,0.0002
+marabou,onnx/f0038-paper.onnx,vnnlib/f0038.vnnlib,satrelu-v6-c30-unsat,satrelu,paper,unsat,unsat,correct,0.816,0.816,60,,,6,132,30,0.0002
+marabou,onnx/f0039-paper.onnx,vnnlib/f0039.vnnlib,satrelu-v64-c234-sat,satrelu,paper,sat,sat,correct,20.736,20.735,60,valid,233.5,64,1150,234,0.0005
+marabou,onnx/f0040-paper.onnx,vnnlib/f0040.vnnlib,satrelu-v58-c75-sat,satrelu,paper,sat,sat,correct,1.118,1.118,60,valid,74.5,58,631,75,0.0002
+marabou,onnx/f0041-paper.onnx,vnnlib/f0041.vnnlib,satrelu-v75-c99-sat,satrelu,paper,sat,sat,correct,2.472,2.472,60,valid,98.5,75,822,99,0.0003
+marabou,onnx/f0042-paper.onnx,vnnlib/f0042.vnnlib,satrelu-v91-c217-unsat,satrelu,paper,unsat,sat,wrong,14.969,14.968,60,invalid: output 157.5 below threshold 216.5; does not decode to a satisfying assignment,157.5,91,1288,217,0.0015
+marabou,onnx/f0043-paper.onnx,vnnlib/f0043.vnnlib,satrelu-v92-c117-sat,satrelu,paper,sat,sat,correct,2.881,2.881,60,valid,116.5,92,995,117,0.0004
+marabou,onnx/f0044-paper.onnx,vnnlib/f0044.vnnlib,satrelu-v18-c87-sat,satrelu,paper,sat,sat,correct,0.970,0.970,60,valid,86.5,18,387,87,0.0002
+marabou,onnx/f0045-paper.onnx,vnnlib/f0045.vnnlib,satrelu-v30-c44-unsat,satrelu,paper,unsat,timeout,timeout,60.480,60.478,60,,,30,342,44,0.0002
+marabou,onnx/f0046-paper.onnx,vnnlib/f0046.vnnlib,satrelu-v85-c186-unsat,satrelu,paper,unsat,timeout,timeout,61.697,61.694,60,,,85,1153,186,0.0011
+marabou,onnx/f0047-paper.onnx,vnnlib/f0047.vnnlib,satrelu-v38-c132-sat,satrelu,paper,sat,sat,correct,2.412,2.412,60,valid,131.5,38,662,132,0.0003
+marabou,onnx/f0048-paper.onnx,vnnlib/f0048.vnnlib,satrelu-v46-c142-sat,satrelu,paper,sat,sat,correct,3.025,3.025,60,valid,141.5,46,748,142,0.0003
+marabou,onnx/f0049-paper.onnx,vnnlib/f0049.vnnlib,satrelu-v18-c88-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.013,60,,,18,390,88,0.0003
+marabou,onnx/f0050-paper.onnx,vnnlib/f0050.vnnlib,satrelu-v30-c38-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.014,60,,,30,324,38,0.0002
+marabou,onnx/f0051-paper.onnx,vnnlib/f0051.vnnlib,satrelu-v92-c180-sat,satrelu,paper,sat,sat,correct,4.829,4.829,60,valid,179.5,92,1184,180,0.0005
+marabou,onnx/f0052-paper.onnx,vnnlib/f0052.vnnlib,satrelu-v9-c9-unsat,satrelu,paper,unsat,unsat,correct,0.601,0.601,60,,,9,90,9,0.0001
+marabou,onnx/f0053-paper.onnx,vnnlib/f0053.vnnlib,satrelu-v82-c130-unsat,satrelu,paper,unsat,timeout,timeout,62.362,62.360,60,,,82,964,130,0.0008
+marabou,onnx/f0054-paper.onnx,vnnlib/f0054.vnnlib,satrelu-v39-c77-unsat,satrelu,paper,unsat,timeout,timeout,60.553,60.550,60,,,39,504,77,0.0004
+marabou,onnx/f0055-paper.onnx,vnnlib/f0055.vnnlib,satrelu-v51-c255-sat,satrelu,paper,sat,sat,correct,5.733,5.732,60,valid,254.5,51,1122,255,0.0006
+marabou,onnx/f0056-paper.onnx,vnnlib/f0056.vnnlib,satrelu-v90-c449-sat,satrelu,paper,sat,sat,correct,36.937,36.935,60,valid,448.5,90,1977,449,0.0012
+marabou,onnx/f0057-paper.onnx,vnnlib/f0057.vnnlib,satrelu-v99-c485-unsat,satrelu,paper,unsat,timeout,timeout,75.115,75.113,60,,,99,2148,485,0.0034
+marabou,onnx/f0058-paper.onnx,vnnlib/f0058.vnnlib,satrelu-v9-c14-sat,satrelu,paper,sat,sat,correct,0.415,0.415,60,valid,13.5,9,105,14,0.0001
+marabou,onnx/f0059-paper.onnx,vnnlib/f0059.vnnlib,satrelu-v24-c66-unsat,satrelu,paper,unsat,timeout,timeout,61.558,61.555,60,,,24,366,66,0.0003
+marabou,onnx/f0060-paper.onnx,vnnlib/f0060.vnnlib,satrelu-v40-c142-unsat,satrelu,paper,unsat,timeout,timeout,61.313,61.310,60,,,40,706,142,0.0011
+marabou,onnx/f0061-paper.onnx,vnnlib/f0061.vnnlib,satrelu-v51-c255-unsat,satrelu,paper,unsat,sat,wrong,12.580,12.579,60,invalid: output 172 below threshold 254.5; does not decode to a satisfying assignment,172,51,1122,255,0.0018
+marabou,onnx/f0062-paper.onnx,vnnlib/f0062.vnnlib,satrelu-v33-c140-sat,satrelu,paper,sat,sat,correct,2.221,2.221,60,valid,139.5,33,651,140,0.0005
+marabou,onnx/f0063-paper.onnx,vnnlib/f0063.vnnlib,satrelu-v83-c328-unsat,satrelu,paper,unsat,timeout,timeout,70.767,70.764,60,,,83,1565,328,0.0023
+marabou,onnx/f0064-paper.onnx,vnnlib/f0064.vnnlib,satrelu-v92-c117-unsat,satrelu,paper,unsat,timeout,timeout,61.906,61.903,60,,,92,995,117,0.0006
+marabou,onnx/f0065-paper.onnx,vnnlib/f0065.vnnlib,satrelu-v85-c207-unsat,satrelu,paper,unsat,sat,wrong,52.631,52.629,60,invalid: output 205.5 below threshold 206.5; does not decode to a satisfying assignment,205.5,85,1216,207,0.0012
+marabou,onnx/f0066-paper.onnx,vnnlib/f0066.vnnlib,satrelu-v56-c239-unsat,satrelu,paper,unsat,sat,wrong,10.447,10.447,60,invalid: output 192 below threshold 238.5; does not decode to a satisfying assignment,192,56,1109,239,0.0021
+marabou,onnx/f0067-paper.onnx,vnnlib/f0067.vnnlib,satrelu-v67-c154-unsat,satrelu,paper,unsat,timeout,timeout,62.050,62.046,60,,,67,931,154,0.0010
+marabou,onnx/f0068-paper.onnx,vnnlib/f0068.vnnlib,satrelu-v90-c449-unsat,satrelu,paper,unsat,timeout,timeout,61.412,61.409,60,,,90,1977,449,0.0024
+marabou,onnx/f0069-paper.onnx,vnnlib/f0069.vnnlib,satrelu-v70-c178-unsat,satrelu,paper,unsat,timeout,timeout,61.030,61.027,60,,,70,1024,178,0.0013
+marabou,onnx/f0070-paper.onnx,vnnlib/f0070.vnnlib,satrelu-v14-c57-unsat,satrelu,paper,unsat,timeout,timeout,75.009,75.006,60,,,14,269,57,0.0003
+marabou,onnx/f0071-paper.onnx,vnnlib/f0071.vnnlib,satrelu-v95-c275-unsat,satrelu,paper,unsat,sat,wrong,28.106,28.105,60,invalid: output 148 below threshold 274.5; does not decode to a satisfying assignment,148,95,1490,275,0.0016
+marabou,onnx/f0072-paper.onnx,vnnlib/f0072.vnnlib,satrelu-v87-c243-sat,satrelu,paper,sat,sat,correct,55.504,55.501,60,valid,242.5,87,1338,243,0.0006
+marabou,onnx/f0073-paper.onnx,vnnlib/f0073.vnnlib,satrelu-v94-c377-sat,satrelu,paper,sat,sat,correct,21.284,21.282,60,valid,376.5,94,1789,377,0.0009
+marabou,onnx/f0074-paper.onnx,vnnlib/f0074.vnnlib,satrelu-v16-c39-sat,satrelu,paper,sat,sat,correct,0.618,0.618,60,valid,38.5,16,229,39,0.0001
+marabou,onnx/f0075-paper.onnx,vnnlib/f0075.vnnlib,satrelu-v20-c40-sat,satrelu,paper,sat,sat,correct,0.677,0.677,60,valid,39.5,20,260,40,0.0002
+marabou,onnx/f0076-paper.onnx,vnnlib/f0076.vnnlib,satrelu-v34-c98-sat,satrelu,paper,sat,sat,correct,1.067,1.067,60,valid,97.5,34,532,98,0.0002
+marabou,onnx/f0077-paper.onnx,vnnlib/f0077.vnnlib,satrelu-v20-c40-unsat,satrelu,paper,unsat,timeout,timeout,60.453,60.450,60,,,20,260,40,0.0003
+marabou,onnx/f0078-paper.onnx,vnnlib/f0078.vnnlib,satrelu-v24-c66-sat,satrelu,paper,sat,sat,correct,0.808,0.808,60,valid,65.5,24,366,66,0.0002
+marabou,onnx/f0079-paper.onnx,vnnlib/f0079.vnnlib,satrelu-v25-c45-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.014,60,,,25,310,45,0.0002
+marabou,onnx/f0080-paper.onnx,vnnlib/f0080.vnnlib,satrelu-v39-c77-sat,satrelu,paper,sat,sat,correct,1.468,1.468,60,valid,76.5,39,504,77,0.0003
+marabou,onnx/f0081-paper.onnx,vnnlib/f0081.vnnlib,satrelu-v90-c111-sat,satrelu,paper,sat,sat,correct,1.970,1.970,60,valid,110.5,90,963,111,0.0003
+marabou,onnx/f0082-paper.onnx,vnnlib/f0082.vnnlib,satrelu-v10-c26-unsat,satrelu,paper,unsat,sat,wrong,8.792,8.791,60,invalid: output 19.5 below threshold 25.5; does not decode to a satisfying assignment,19.5,10,148,26,0.0002
+marabou,onnx/f0083-paper.onnx,vnnlib/f0083.vnnlib,satrelu-v94-c313-unsat,satrelu,paper,unsat,sat,wrong,31.065,31.063,60,invalid: output 190 below threshold 312.5; does not decode to a satisfying assignment,190,94,1597,313,0.0021
+marabou,onnx/f0084-paper.onnx,vnnlib/f0084.vnnlib,satrelu-v6-c27-sat,satrelu,paper,sat,sat,correct,0.418,0.418,60,valid,26.5,6,123,27,0.0001
+marabou,onnx/f0085-paper.onnx,vnnlib/f0085.vnnlib,satrelu-v63-c267-unsat,satrelu,paper,unsat,timeout,timeout,60.760,60.757,60,,,63,1242,267,0.0023
+marabou,onnx/f0086-paper.onnx,vnnlib/f0086.vnnlib,satrelu-v83-c328-sat,satrelu,paper,sat,sat,correct,12.304,12.304,60,valid,327.5,83,1565,328,0.0008
+marabou,onnx/f0087-paper.onnx,vnnlib/f0087.vnnlib,satrelu-v92-c180-unsat,satrelu,paper,unsat,sat,wrong,17.821,17.820,60,invalid: output 119 below threshold 179.5; does not decode to a satisfying assignment,119,92,1184,180,0.0014
+marabou,onnx/f0088-paper.onnx,vnnlib/f0088.vnnlib,satrelu-v37-c63-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.014,60,,,37,448,63,0.0003
+marabou,onnx/f0089-paper.onnx,vnnlib/f0089.vnnlib,satrelu-v94-c313-sat,satrelu,paper,sat,timeout,timeout,75.065,75.061,60,,,94,1597,313,0.0007
+marabou,onnx/f0090-paper.onnx,vnnlib/f0090.vnnlib,satrelu-v30-c38-sat,satrelu,paper,sat,sat,correct,0.578,0.578,60,valid,37.5,30,324,38,0.0002
+marabou,onnx/f0091-paper.onnx,vnnlib/f0091.vnnlib,satrelu-v65-c187-sat,satrelu,paper,sat,sat,correct,5.131,5.131,60,valid,186.5,65,1016,187,0.0004
+marabou,onnx/f0092-paper.onnx,vnnlib/f0092.vnnlib,satrelu-v67-c154-sat,satrelu,paper,sat,sat,correct,2.923,2.923,60,valid,153.5,67,931,154,0.0004
+marabou,onnx/f0093-paper.onnx,vnnlib/f0093.vnnlib,satrelu-v33-c140-unsat,satrelu,paper,unsat,timeout,timeout,75.033,75.028,60,,,33,651,140,0.0012
+marabou,onnx/f0094-paper.onnx,vnnlib/f0094.vnnlib,satrelu-v26-c84-unsat,satrelu,paper,unsat,timeout,timeout,75.017,75.014,60,,,26,434,84,0.0005
+marabou,onnx/f0095-paper.onnx,vnnlib/f0095.vnnlib,satrelu-v56-c239-sat,satrelu,paper,sat,sat,correct,14.761,14.761,60,valid,238.5,56,1109,239,0.0004
+marabou,onnx/f0096-paper.onnx,vnnlib/f0096.vnnlib,satrelu-v63-c286-unsat,satrelu,paper,unsat,timeout,timeout,75.065,75.061,60,,,63,1299,286,0.0016
+marabou,onnx/f0097-paper.onnx,vnnlib/f0097.vnnlib,satrelu-v99-c485-sat,satrelu,paper,sat,sat,correct,29.226,29.225,60,valid,484.5,99,2148,485,0.0011
+marabou,onnx/f0098-paper.onnx,vnnlib/f0098.vnnlib,satrelu-v94-c377-unsat,satrelu,paper,unsat,timeout,timeout,75.065,75.063,60,,,94,1789,377,0.0023

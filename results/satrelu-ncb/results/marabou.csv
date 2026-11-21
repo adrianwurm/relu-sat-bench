@@ -1,0 +1,99 @@
+tool,onnx,vnnlib,formula_id,family,encoding,expected,result,verdict,seconds,wall_seconds,timeout,cex_check,cex_output,num_inputs,num_relus,num_clauses,sat_solver_seconds
+marabou,onnx/f0001-neurocodebench.onnx,vnnlib/f0001-neurocodebench.vnnlib,satrelu-v25-c40-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,25,90,40,0.0003
+marabou,onnx/f0002-neurocodebench.onnx,vnnlib/f0002-neurocodebench.vnnlib,satrelu-v34-c98-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.013,60,,,34,166,98,0.0005
+marabou,onnx/f0003-neurocodebench.onnx,vnnlib/f0003-neurocodebench.vnnlib,satrelu-v46-c142-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.014,60,,,46,234,142,0.0008
+marabou,onnx/f0004-neurocodebench.onnx,vnnlib/f0004-neurocodebench.vnnlib,satrelu-v90-c111-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.012,60,,,90,291,111,0.0005
+marabou,onnx/f0005-neurocodebench.onnx,vnnlib/f0005-neurocodebench.vnnlib,satrelu-v54-c125-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,54,233,125,0.0003
+marabou,onnx/f0006-neurocodebench.onnx,vnnlib/f0006-neurocodebench.vnnlib,satrelu-v30-c44-sat,satrelu,neurocodebench,sat,sat,correct,0.433,0.433,60,valid,1;0,30,104,44,0.0002
+marabou,onnx/f0007-neurocodebench.onnx,vnnlib/f0007-neurocodebench.vnnlib,satrelu-v85-c207-sat,satrelu,neurocodebench,sat,sat,correct,0.535,0.535,60,valid,1;0,85,377,207,0.0005
+marabou,onnx/f0008-neurocodebench.onnx,vnnlib/f0008-neurocodebench.vnnlib,satrelu-v64-c234-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.014,60,,,64,362,234,0.0019
+marabou,onnx/f0009-neurocodebench.onnx,vnnlib/f0009-neurocodebench.vnnlib,satrelu-v38-c132-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.004,60,,,38,208,132,0.0007
+marabou,onnx/f0010-neurocodebench.onnx,vnnlib/f0010-neurocodebench.vnnlib,satrelu-v16-c39-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.008,75.006,60,,,16,71,39,0.0002
+marabou,onnx/f0011-neurocodebench.onnx,vnnlib/f0011-neurocodebench.vnnlib,satrelu-v14-c57-sat,satrelu,neurocodebench,sat,sat,correct,0.370,0.370,60,valid,1;0,14,85,57,0.0001
+marabou,onnx/f0012-neurocodebench.onnx,vnnlib/f0012-neurocodebench.vnnlib,satrelu-v73-c156-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.012,60,,,73,302,156,0.0011
+marabou,onnx/f0013-neurocodebench.onnx,vnnlib/f0013-neurocodebench.vnnlib,satrelu-v100-c373-unsat,satrelu,neurocodebench,unsat,sat,wrong,11.751,11.751,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,100,573,373,0.0027
+marabou,onnx/f0014-neurocodebench.onnx,vnnlib/f0014-neurocodebench.vnnlib,satrelu-v70-c178-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,70,318,178,0.0005
+marabou,onnx/f0015-neurocodebench.onnx,vnnlib/f0015-neurocodebench.vnnlib,satrelu-v95-c275-sat,satrelu,neurocodebench,sat,sat,correct,0.565,0.565,60,valid,1;0,95,465,275,0.0007
+marabou,onnx/f0016-neurocodebench.onnx,vnnlib/f0016-neurocodebench.vnnlib,satrelu-v73-c156-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,73,302,156,0.0004
+marabou,onnx/f0017-neurocodebench.onnx,vnnlib/f0017-neurocodebench.vnnlib,satrelu-v58-c75-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.012,60,,,58,191,75,0.0003
+marabou,onnx/f0018-neurocodebench.onnx,vnnlib/f0018-neurocodebench.vnnlib,satrelu-v63-c286-sat,satrelu,neurocodebench,sat,sat,correct,0.566,0.566,60,valid,1;0,63,412,286,0.0006
+marabou,onnx/f0019-neurocodebench.onnx,vnnlib/f0019-neurocodebench.vnnlib,satrelu-v26-c84-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,26,136,84,0.0002
+marabou,onnx/f0020-neurocodebench.onnx,vnnlib/f0020-neurocodebench.vnnlib,satrelu-v40-c142-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,40,222,142,0.0003
+marabou,onnx/f0021-neurocodebench.onnx,vnnlib/f0021-neurocodebench.vnnlib,satrelu-v9-c9-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,9,27,9,0.0001
+marabou,onnx/f0022-neurocodebench.onnx,vnnlib/f0022-neurocodebench.vnnlib,satrelu-v91-c217-sat,satrelu,neurocodebench,sat,sat,correct,0.622,0.622,60,valid,1;0,91,399,217,0.0006
+marabou,onnx/f0023-neurocodebench.onnx,vnnlib/f0023-neurocodebench.vnnlib,satrelu-v25-c45-sat,satrelu,neurocodebench,sat,sat,correct,0.466,0.466,60,valid,1;0,25,95,45,0.0002
+marabou,onnx/f0024-neurocodebench.onnx,vnnlib/f0024-neurocodebench.vnnlib,satrelu-v44-c52-sat,satrelu,neurocodebench,sat,sat,correct,0.516,0.516,60,valid,1;0,44,140,52,0.0002
+marabou,onnx/f0025-neurocodebench.onnx,vnnlib/f0025-neurocodebench.vnnlib,satrelu-v87-c243-unsat,satrelu,neurocodebench,unsat,sat,wrong,10.993,10.993,60,invalid: Y_1 = 2 violates <= 0; does not decode to a satisfying assignment,1;2,87,417,243,0.0014
+marabou,onnx/f0026-neurocodebench.onnx,vnnlib/f0026-neurocodebench.vnnlib,satrelu-v75-c99-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.013,60,,,75,249,99,0.0006
+marabou,onnx/f0027-neurocodebench.onnx,vnnlib/f0027-neurocodebench.vnnlib,satrelu-v100-c373-sat,satrelu,neurocodebench,sat,sat,correct,0.724,0.724,60,valid,1;0,100,573,373,0.0008
+marabou,onnx/f0028-neurocodebench.onnx,vnnlib/f0028-neurocodebench.vnnlib,satrelu-v85-c186-sat,satrelu,neurocodebench,sat,sat,correct,0.466,0.466,60,valid,1;0,85,356,186,0.0005
+marabou,onnx/f0029-neurocodebench.onnx,vnnlib/f0029-neurocodebench.vnnlib,satrelu-v65-c187-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.014,60,,,65,317,187,0.0014
+marabou,onnx/f0030-neurocodebench.onnx,vnnlib/f0030-neurocodebench.vnnlib,satrelu-v44-c52-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.004,60,,,44,140,52,0.0004
+marabou,onnx/f0031-neurocodebench.onnx,vnnlib/f0031-neurocodebench.vnnlib,satrelu-v37-c63-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,37,137,63,0.0003
+marabou,onnx/f0032-neurocodebench.onnx,vnnlib/f0032-neurocodebench.vnnlib,satrelu-v9-c14-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,9,32,14,0.0001
+marabou,onnx/f0033-neurocodebench.onnx,vnnlib/f0033-neurocodebench.vnnlib,satrelu-v25-c40-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,25,90,40,0.0002
+marabou,onnx/f0034-neurocodebench.onnx,vnnlib/f0034-neurocodebench.vnnlib,satrelu-v82-c130-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,82,294,130,0.0004
+marabou,onnx/f0035-neurocodebench.onnx,vnnlib/f0035-neurocodebench.vnnlib,satrelu-v63-c267-sat,satrelu,neurocodebench,sat,sat,correct,0.516,0.516,60,valid,1;0,63,393,267,0.0006
+marabou,onnx/f0036-neurocodebench.onnx,vnnlib/f0036-neurocodebench.vnnlib,satrelu-v54-c125-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.004,60,,,54,233,125,0.0009
+marabou,onnx/f0037-neurocodebench.onnx,vnnlib/f0037-neurocodebench.vnnlib,satrelu-v10-c26-sat,satrelu,neurocodebench,sat,sat,correct,0.365,0.365,60,valid,1;0,10,46,26,0.0001
+marabou,onnx/f0038-neurocodebench.onnx,vnnlib/f0038-neurocodebench.vnnlib,satrelu-v6-c30-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,6,42,30,0.0002
+marabou,onnx/f0039-neurocodebench.onnx,vnnlib/f0039-neurocodebench.vnnlib,satrelu-v64-c234-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,64,362,234,0.0005
+marabou,onnx/f0040-neurocodebench.onnx,vnnlib/f0040-neurocodebench.vnnlib,satrelu-v58-c75-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,58,191,75,0.0003
+marabou,onnx/f0041-neurocodebench.onnx,vnnlib/f0041-neurocodebench.vnnlib,satrelu-v75-c99-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,75,249,99,0.0003
+marabou,onnx/f0042-neurocodebench.onnx,vnnlib/f0042-neurocodebench.vnnlib,satrelu-v91-c217-unsat,satrelu,neurocodebench,unsat,sat,wrong,4.430,4.430,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,91,399,217,0.0015
+marabou,onnx/f0043-neurocodebench.onnx,vnnlib/f0043-neurocodebench.vnnlib,satrelu-v92-c117-sat,satrelu,neurocodebench,sat,sat,correct,0.437,0.435,60,valid,1;0,92,301,117,0.0004
+marabou,onnx/f0044-neurocodebench.onnx,vnnlib/f0044-neurocodebench.vnnlib,satrelu-v18-c87-sat,satrelu,neurocodebench,sat,sat,correct,0.382,0.382,60,valid,1;-8.8817842e-16,18,123,87,0.0002
+marabou,onnx/f0045-neurocodebench.onnx,vnnlib/f0045-neurocodebench.vnnlib,satrelu-v30-c44-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,30,104,44,0.0003
+marabou,onnx/f0046-neurocodebench.onnx,vnnlib/f0046-neurocodebench.vnnlib,satrelu-v85-c186-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.013,60,,,85,356,186,0.0011
+marabou,onnx/f0047-neurocodebench.onnx,vnnlib/f0047-neurocodebench.vnnlib,satrelu-v38-c132-sat,satrelu,neurocodebench,sat,sat,correct,0.393,0.393,60,valid,1;0,38,208,132,0.0003
+marabou,onnx/f0048-neurocodebench.onnx,vnnlib/f0048-neurocodebench.vnnlib,satrelu-v46-c142-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,46,234,142,0.0003
+marabou,onnx/f0049-neurocodebench.onnx,vnnlib/f0049-neurocodebench.vnnlib,satrelu-v18-c88-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.005,60,,,18,124,88,0.0004
+marabou,onnx/f0050-neurocodebench.onnx,vnnlib/f0050-neurocodebench.vnnlib,satrelu-v30-c38-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.004,60,,,30,98,38,0.0003
+marabou,onnx/f0051-neurocodebench.onnx,vnnlib/f0051-neurocodebench.vnnlib,satrelu-v92-c180-sat,satrelu,neurocodebench,sat,sat,correct,0.517,0.517,60,valid,1;0,92,364,180,0.0006
+marabou,onnx/f0052-neurocodebench.onnx,vnnlib/f0052-neurocodebench.vnnlib,satrelu-v9-c9-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,9,27,9,0.0001
+marabou,onnx/f0053-neurocodebench.onnx,vnnlib/f0053-neurocodebench.vnnlib,satrelu-v82-c130-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.013,60,,,82,294,130,0.0010
+marabou,onnx/f0054-neurocodebench.onnx,vnnlib/f0054-neurocodebench.vnnlib,satrelu-v39-c77-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.010,75.008,60,,,39,155,77,0.0004
+marabou,onnx/f0055-neurocodebench.onnx,vnnlib/f0055-neurocodebench.vnnlib,satrelu-v51-c255-sat,satrelu,neurocodebench,sat,sat,correct,0.469,0.469,60,valid,1;0,51,357,255,0.0005
+marabou,onnx/f0056-neurocodebench.onnx,vnnlib/f0056-neurocodebench.vnnlib,satrelu-v90-c449-sat,satrelu,neurocodebench,sat,sat,correct,0.730,0.730,60,valid,1;0,90,629,449,0.0013
+marabou,onnx/f0057-neurocodebench.onnx,vnnlib/f0057-neurocodebench.vnnlib,satrelu-v99-c485-unsat,satrelu,neurocodebench,unsat,sat,wrong,6.343,6.343,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,99,683,485,0.0035
+marabou,onnx/f0058-neurocodebench.onnx,vnnlib/f0058-neurocodebench.vnnlib,satrelu-v9-c14-sat,satrelu,neurocodebench,sat,sat,correct,0.360,0.360,60,valid,1;0,9,32,14,0.0001
+marabou,onnx/f0059-neurocodebench.onnx,vnnlib/f0059-neurocodebench.vnnlib,satrelu-v24-c66-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.004,60,,,24,114,66,0.0004
+marabou,onnx/f0060-neurocodebench.onnx,vnnlib/f0060-neurocodebench.vnnlib,satrelu-v40-c142-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,40,222,142,0.0011
+marabou,onnx/f0061-neurocodebench.onnx,vnnlib/f0061-neurocodebench.vnnlib,satrelu-v51-c255-unsat,satrelu,neurocodebench,unsat,sat,wrong,4.628,4.628,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,51,357,255,0.0018
+marabou,onnx/f0062-neurocodebench.onnx,vnnlib/f0062-neurocodebench.vnnlib,satrelu-v33-c140-sat,satrelu,neurocodebench,sat,sat,correct,0.365,0.364,60,valid,1;0,33,206,140,0.0003
+marabou,onnx/f0063-neurocodebench.onnx,vnnlib/f0063-neurocodebench.vnnlib,satrelu-v83-c328-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.014,60,,,83,494,328,0.0023
+marabou,onnx/f0064-neurocodebench.onnx,vnnlib/f0064-neurocodebench.vnnlib,satrelu-v92-c117-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.013,60,,,92,301,117,0.0007
+marabou,onnx/f0065-neurocodebench.onnx,vnnlib/f0065-neurocodebench.vnnlib,satrelu-v85-c207-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.015,60,,,85,377,207,0.0012
+marabou,onnx/f0066-neurocodebench.onnx,vnnlib/f0066-neurocodebench.vnnlib,satrelu-v56-c239-unsat,satrelu,neurocodebench,unsat,sat,wrong,1.703,1.703,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,56,351,239,0.0021
+marabou,onnx/f0067-neurocodebench.onnx,vnnlib/f0067-neurocodebench.vnnlib,satrelu-v67-c154-unsat,satrelu,neurocodebench,unsat,sat,wrong,3.931,3.931,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,67,288,154,0.0010
+marabou,onnx/f0068-neurocodebench.onnx,vnnlib/f0068-neurocodebench.vnnlib,satrelu-v90-c449-unsat,satrelu,neurocodebench,unsat,sat,wrong,7.211,7.211,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,90,629,449,0.0024
+marabou,onnx/f0069-neurocodebench.onnx,vnnlib/f0069-neurocodebench.vnnlib,satrelu-v70-c178-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.012,60,,,70,318,178,0.0013
+marabou,onnx/f0070-neurocodebench.onnx,vnnlib/f0070-neurocodebench.vnnlib,satrelu-v14-c57-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.005,60,,,14,85,57,0.0003
+marabou,onnx/f0071-neurocodebench.onnx,vnnlib/f0071-neurocodebench.vnnlib,satrelu-v95-c275-unsat,satrelu,neurocodebench,unsat,sat,wrong,6.431,6.430,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,95,465,275,0.0017
+marabou,onnx/f0072-neurocodebench.onnx,vnnlib/f0072-neurocodebench.vnnlib,satrelu-v87-c243-sat,satrelu,neurocodebench,sat,sat,correct,0.515,0.515,60,valid,1;0,87,417,243,0.0006
+marabou,onnx/f0073-neurocodebench.onnx,vnnlib/f0073-neurocodebench.vnnlib,satrelu-v94-c377-sat,satrelu,neurocodebench,sat,sat,correct,0.716,0.716,60,valid,1;0,94,565,377,0.0009
+marabou,onnx/f0074-neurocodebench.onnx,vnnlib/f0074-neurocodebench.vnnlib,satrelu-v16-c39-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;-4.4408921e-16,16,71,39,0.0002
+marabou,onnx/f0075-neurocodebench.onnx,vnnlib/f0075-neurocodebench.vnnlib,satrelu-v20-c40-sat,satrelu,neurocodebench,sat,sat,correct,0.365,0.365,60,valid,1;0,20,80,40,0.0001
+marabou,onnx/f0076-neurocodebench.onnx,vnnlib/f0076-neurocodebench.vnnlib,satrelu-v34-c98-sat,satrelu,neurocodebench,sat,sat,correct,0.415,0.415,60,valid,1;0,34,166,98,0.0002
+marabou,onnx/f0077-neurocodebench.onnx,vnnlib/f0077-neurocodebench.vnnlib,satrelu-v20-c40-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.006,60,,,20,80,40,0.0002
+marabou,onnx/f0078-neurocodebench.onnx,vnnlib/f0078-neurocodebench.vnnlib,satrelu-v24-c66-sat,satrelu,neurocodebench,sat,sat,correct,0.379,0.379,60,valid,1;0,24,114,66,0.0002
+marabou,onnx/f0079-neurocodebench.onnx,vnnlib/f0079-neurocodebench.vnnlib,satrelu-v25-c45-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.008,75.004,60,,,25,95,45,0.0002
+marabou,onnx/f0080-neurocodebench.onnx,vnnlib/f0080-neurocodebench.vnnlib,satrelu-v39-c77-sat,satrelu,neurocodebench,sat,sat,correct,0.469,0.469,60,valid,1;0,39,155,77,0.0003
+marabou,onnx/f0081-neurocodebench.onnx,vnnlib/f0081-neurocodebench.vnnlib,satrelu-v90-c111-sat,satrelu,neurocodebench,sat,sat,correct,0.534,0.534,60,valid,1;0,90,291,111,0.0004
+marabou,onnx/f0082-neurocodebench.onnx,vnnlib/f0082-neurocodebench.vnnlib,satrelu-v10-c26-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.018,75.015,60,,,10,46,26,0.0002
+marabou,onnx/f0083-neurocodebench.onnx,vnnlib/f0083-neurocodebench.vnnlib,satrelu-v94-c313-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.018,75.014,60,,,94,501,313,0.0021
+marabou,onnx/f0084-neurocodebench.onnx,vnnlib/f0084-neurocodebench.vnnlib,satrelu-v6-c27-sat,satrelu,neurocodebench,sat,sat,correct,0.365,0.365,60,valid,1;0,6,39,27,0.0001
+marabou,onnx/f0085-neurocodebench.onnx,vnnlib/f0085-neurocodebench.vnnlib,satrelu-v63-c267-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.014,60,,,63,393,267,0.0021
+marabou,onnx/f0086-neurocodebench.onnx,vnnlib/f0086-neurocodebench.vnnlib,satrelu-v83-c328-sat,satrelu,neurocodebench,sat,sat,correct,0.566,0.566,60,valid,1;0,83,494,328,0.0011
+marabou,onnx/f0087-neurocodebench.onnx,vnnlib/f0087-neurocodebench.vnnlib,satrelu-v92-c180-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.017,75.012,60,,,92,364,180,0.0014
+marabou,onnx/f0088-neurocodebench.onnx,vnnlib/f0088-neurocodebench.vnnlib,satrelu-v37-c63-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.010,75.007,60,,,37,137,63,0.0003
+marabou,onnx/f0089-neurocodebench.onnx,vnnlib/f0089-neurocodebench.vnnlib,satrelu-v94-c313-sat,satrelu,neurocodebench,sat,sat,correct,0.640,0.640,60,valid,1;0,94,501,313,0.0007
+marabou,onnx/f0090-neurocodebench.onnx,vnnlib/f0090-neurocodebench.vnnlib,satrelu-v30-c38-sat,satrelu,neurocodebench,sat,sat,correct,0.365,0.365,60,valid,1;0,30,98,38,0.0003
+marabou,onnx/f0091-neurocodebench.onnx,vnnlib/f0091-neurocodebench.vnnlib,satrelu-v65-c187-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,65,317,187,0.0004
+marabou,onnx/f0092-neurocodebench.onnx,vnnlib/f0092-neurocodebench.vnnlib,satrelu-v67-c154-sat,satrelu,neurocodebench,sat,sat,correct,0.465,0.465,60,valid,1;0,67,288,154,0.0004
+marabou,onnx/f0093-neurocodebench.onnx,vnnlib/f0093-neurocodebench.vnnlib,satrelu-v33-c140-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.009,75.005,60,,,33,206,140,0.0007
+marabou,onnx/f0094-neurocodebench.onnx,vnnlib/f0094-neurocodebench.vnnlib,satrelu-v26-c84-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.008,75.006,60,,,26,136,84,0.0004
+marabou,onnx/f0095-neurocodebench.onnx,vnnlib/f0095-neurocodebench.vnnlib,satrelu-v56-c239-sat,satrelu,neurocodebench,sat,sat,correct,0.468,0.468,60,valid,1;0,56,351,239,0.0005
+marabou,onnx/f0096-neurocodebench.onnx,vnnlib/f0096-neurocodebench.vnnlib,satrelu-v63-c286-unsat,satrelu,neurocodebench,unsat,sat,wrong,5.984,5.982,60,invalid: Y_1 = 1 violates <= 0; does not decode to a satisfying assignment,1;1,63,412,286,0.0015
+marabou,onnx/f0097-neurocodebench.onnx,vnnlib/f0097-neurocodebench.vnnlib,satrelu-v99-c485-sat,satrelu,neurocodebench,sat,sat,correct,0.867,0.867,60,valid,1;0,99,683,485,0.0012
+marabou,onnx/f0098-neurocodebench.onnx,vnnlib/f0098-neurocodebench.vnnlib,satrelu-v94-c377-unsat,satrelu,neurocodebench,unsat,timeout,timeout,75.016,75.014,60,,,94,565,377,0.0023

@@ -3,13 +3,13 @@ ordering,unsat,91,1,1/1,0.0018
 ordering,unsat,120,1,1/1,0.0023
 ordering,unsat,153,1,1/1,0.0032
 ordering,unsat,190,1,1/1,0.0053
-pigeonhole,unsat,132,1,1/1,60.0
-pigeonhole,unsat,156,1,1/1,60.0
-pigeonhole,unsat,182,1,1/1,60.0
-pigeonhole,unsat,210,1,1/1,60.0
+pigeonhole,unsat,132,1,1/1,> 60.0
+pigeonhole,unsat,156,1,1/1,> 60.0
+pigeonhole,unsat,182,1,1/1,> 60.0
+pigeonhole,unsat,210,1,1/1,> 60.0
 planted r4.26,sat,300,2,0/2,16.8845
-planted r4.26,sat,400,2,0/2,60.0
-planted r4.26,sat,600,2,0/2,60.0
+planted r4.26,sat,400,2,0/2,> 60.0
+planted r4.26,sat,600,2,0/2,> 60.0
 random r4.26,sat,175,2,2/2,0.035
 random r4.26,sat,200,3,3/3,0.2046
 random r4.26,sat,250,2,2/2,1.7376
@@ -21,6 +21,6 @@ random r5,unsat,250,3,3/3,0.9134
 random r5,unsat,300,3,0/3,3.1306
 tseitin odd,unsat,90,2,2/2,3.4563
 tseitin odd,unsat,120,2,2/2,16.1378
-tseitin odd,unsat,150,2,2/2,60.0
-tseitin odd,unsat,210,2,2/2,60.0
-tseitin odd,unsat,300,2,2/2,60.0
+tseitin odd,unsat,150,2,2/2,> 60.0
+tseitin odd,unsat,210,2,2/2,> 60.0
+tseitin odd,unsat,300,2,2/2,> 60.0

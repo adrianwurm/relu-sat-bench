@@ -1,0 +1,13 @@
+onnx,vnnlib,timeout,formula_id,family,encoding,expected,num_inputs,num_relus,num_clauses,threshold,vnnlib_rhs,output_constraints,sat_solver_seconds,source
+onnx/f0001.onnx,vnnlib/f0001.vnnlib,600,pigeonhole-h10,pigeonhole,compact,unsat,110,781,561,560.5,0.0,1,59.2686,scaling-shifted/onnx/f0062.onnx
+onnx/f0002.onnx,vnnlib/f0002.vnnlib,600,random-n120-r5-s1-002,random,compact,unsat,120,840,600,599.5,0.0,1,0.0098,scaling-shifted/onnx/f0009.onnx
+onnx/f0003.onnx,vnnlib/f0003.vnnlib,600,random-n120-r5-s1-001,random,compact,unsat,120,840,600,599.5,0.0,1,0.0077,scaling-shifted/onnx/f0040.onnx
+onnx/f0004.onnx,vnnlib/f0004.vnnlib,600,random-n120-r4.26-s1-000,random,compact,unsat,120,751,511,510.5,0.0,1,0.0064,scaling-shifted/onnx/f0024.onnx
+onnx/f0005.onnx,vnnlib/f0005.vnnlib,600,tseitin-odd-v32-s1-000,tseitin,compact,unsat,48,224,128,127.5,0.0,1,0.0163,scaling-shifted/onnx/f0059.onnx
+onnx/f0006.onnx,vnnlib/f0006.vnnlib,600,planted-q-hidden-n200-r4.26-s1-000,planted,compact,sat,200,1252,852,851.5,0.0,1,0.0110,scaling-shifted/onnx/f0046.onnx
+onnx/f0007.onnx,vnnlib/f0007.vnnlib,600,planted-q-hidden-n200-r4.26-s1-001,planted,compact,sat,200,1252,852,851.5,0.0,1,0.5160,scaling-shifted/onnx/f0039.onnx
+onnx/f0008.onnx,vnnlib/f0008.vnnlib,600,random-n120-r5-s1-000,random,compact,unsat,120,840,600,599.5,0.0,1,0.0112,scaling-shifted/onnx/f0014.onnx
+onnx/f0009.onnx,vnnlib/f0009.vnnlib,600,planted-q-hidden-n200-r4.26-s1-002,planted,compact,sat,200,1252,852,851.5,0.0,1,0.3887,scaling-shifted/onnx/f0060.onnx
+onnx/f0010.onnx,vnnlib/f0010.vnnlib,600,ordering-n11,ordering,compact,unsat,55,451,341,340.5,0.0,1,0.0015,scaling-shifted/onnx/f0052.onnx
+onnx/f0011.onnx,vnnlib/f0011.vnnlib,600,tseitin-odd-v32-s1-001,tseitin,compact,unsat,48,224,128,127.5,0.0,1,0.0333,scaling-shifted/onnx/f0048.onnx
+onnx/f0012.onnx,vnnlib/f0012.vnnlib,600,random-n120-r4.26-s1-002,random,compact,unsat,120,751,511,510.5,0.0,1,0.0242,scaling-shifted/onnx/f0026.onnx

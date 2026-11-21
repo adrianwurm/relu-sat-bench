@@ -1,0 +1,14 @@
+tool,onnx,vnnlib,formula_id,family,encoding,expected,result,verdict,seconds,wall_seconds,timeout,cex_check,cex_output,num_inputs,num_relus,num_clauses,sat_solver_seconds
+abcrown-bab,onnx/f0001.onnx,vnnlib/f0001.vnnlib,pigeonhole-h6,pigeonhole,compact,unsat,timeout,timeout,605.146,605.118,600,,,42,217,133,0.0037
+abcrown-bab,onnx/f0002.onnx,vnnlib/f0002.vnnlib,tseitin-odd-v14-s1-000,tseitin,compact,unsat,timeout,timeout,604.109,604.082,600,,,21,98,56,0.0005
+abcrown-bab,onnx/f0003.onnx,vnnlib/f0003.vnnlib,random-n80-r5-s1-004,random,compact,unsat,unsat,correct,98.254,98.250,600,,,80,560,400,0.0012
+abcrown-bab,onnx/f0004.onnx,vnnlib/f0004.vnnlib,random-n60-r4.26-s1-004,random,compact,unsat,unsat,correct,43.968,43.965,600,,,60,376,256,0.0007
+abcrown-bab,onnx/f0005.onnx,vnnlib/f0005.vnnlib,tseitin-odd-v14-s1-001,tseitin,compact,unsat,unsat,correct,58.594,58.591,600,,,21,98,56,0.0005
+abcrown-bab,onnx/f0006.onnx,vnnlib/f0006.vnnlib,random-n60-r4.26-s1-000,random,compact,unsat,unsat,correct,42.456,42.455,600,,,60,376,256,0.0008
+abcrown-bab,onnx/f0007.onnx,vnnlib/f0007.vnnlib,random-n60-r4.26-s1-001,random,compact,unsat,unsat,correct,83.823,83.819,600,,,60,376,256,0.0009
+abcrown-bab,onnx/f0008.onnx,vnnlib/f0008.vnnlib,random-n80-r5-s1-001,random,compact,unsat,unsat,correct,81.857,81.854,600,,,80,560,400,0.0010
+abcrown-bab,onnx/f0009.onnx,vnnlib/f0009.vnnlib,random-n80-r5-s1-002,random,compact,unsat,unsat,correct,59.624,59.622,600,,,80,560,400,0.0010
+abcrown-bab,onnx/f0010.onnx,vnnlib/f0010.vnnlib,random-n60-r4.26-s1-003,random,compact,unsat,unsat,correct,79.781,79.777,600,,,60,376,256,0.0010
+abcrown-bab,onnx/f0011.onnx,vnnlib/f0011.vnnlib,ordering-n7,ordering,compact,unsat,unsat,correct,158.319,158.312,600,,,21,119,77,0.0005
+abcrown-bab,onnx/f0012.onnx,vnnlib/f0012.vnnlib,tseitin-odd-v14-s1-002,tseitin,compact,unsat,unsat,correct,50.969,50.967,600,,,21,98,56,0.0005
+abcrown-bab,onnx/f0013.onnx,vnnlib/f0013.vnnlib,random-n80-r5-s1-000,random,compact,unsat,unsat,correct,132.523,132.516,600,,,80,560,400,0.0010

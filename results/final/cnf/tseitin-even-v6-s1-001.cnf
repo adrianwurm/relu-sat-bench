@@ -1,0 +1,29 @@
+c relu-sat-bench instance tseitin-even-v6-s1-001
+c family tseitin
+c params {"degree": 3, "num_vertices": 6, "parity": "even"}
+c seed 1:tseitin:{"num_vertices": 6, "parity": "even"}:1
+p cnf 9 24
+1 2 -3 0
+1 -2 3 0
+-1 2 3 0
+-1 -2 -3 0
+4 5 6 0
+4 -5 -6 0
+-4 5 -6 0
+-4 -5 6 0
+1 7 8 0
+1 -7 -8 0
+-1 7 -8 0
+-1 -7 8 0
+2 4 9 0
+2 -4 -9 0
+-2 4 -9 0
+-2 -4 9 0
+3 5 -7 0
+3 -5 7 0
+-3 5 7 0
+-3 -5 -7 0
+6 8 9 0
+6 -8 -9 0
+-6 8 -9 0
+-6 -8 9 0

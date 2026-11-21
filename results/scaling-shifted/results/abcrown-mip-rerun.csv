@@ -1,0 +1,6 @@
+tool,onnx,vnnlib,formula_id,family,encoding,expected,result,verdict,seconds,wall_seconds,timeout,cex_check,cex_output,num_inputs,num_relus,num_clauses,sat_solver_seconds
+abcrown-mip-rerun,onnx/f0001.onnx,vnnlib/f0001.vnnlib,ordering-n12,ordering,compact,unsat,timeout,timeout,70.057,70.050,60,,,66,584,452,0.0019
+abcrown-mip-rerun,onnx/f0002.onnx,vnnlib/f0002.vnnlib,random-n150-r5-s1-002,random,compact,unsat,timeout,timeout,70.021,70.016,60,,,150,1050,750,0.0192
+abcrown-mip-rerun,onnx/f0004.onnx,vnnlib/f0004.vnnlib,random-n100-r5-s1-002,random,compact,unsat,unsat,correct,43.250,43.246,60,,,100,700,500,0.0048
+abcrown-mip-rerun,onnx/f0009.onnx,vnnlib/f0009.vnnlib,random-n120-r5-s1-002,random,compact,unsat,timeout,timeout,68.675,68.672,60,,,120,840,600,0.0098
+abcrown-mip-rerun,onnx/f0015.onnx,vnnlib/f0015.vnnlib,random-n100-r3.5-s1-000,random,compact,sat,sat,correct,7.441,7.441,60,valid,350,100,550,350,0.0011

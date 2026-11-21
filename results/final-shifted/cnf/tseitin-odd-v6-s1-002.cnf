@@ -1,0 +1,29 @@
+c relu-sat-bench instance tseitin-odd-v6-s1-002
+c family tseitin
+c params {"degree": 3, "num_vertices": 6, "parity": "odd"}
+c seed 1:tseitin:{"num_vertices": 6, "parity": "odd"}:2
+p cnf 9 24
+1 2 3 0
+1 -2 -3 0
+-1 2 -3 0
+-1 -2 3 0
+4 5 -6 0
+4 -5 6 0
+-4 5 6 0
+-4 -5 -6 0
+1 4 7 0
+1 -4 -7 0
+-1 4 -7 0
+-1 -4 7 0
+2 8 -9 0
+2 -8 9 0
+-2 8 9 0
+-2 -8 -9 0
+3 5 -8 0
+3 -5 8 0
+-3 5 8 0
+-3 -5 -8 0
+6 7 9 0
+6 -7 -9 0
+-6 7 -9 0
+-6 -7 9 0

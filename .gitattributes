@@ -6,3 +6,7 @@
 *.onnx binary
 *.png binary
 *.pdf binary
+
+# Result files are stored byte for byte as the runs wrote them (Python's csv module ends lines with
+# CRLF, and the formulas were written on Windows).
+results/** -text

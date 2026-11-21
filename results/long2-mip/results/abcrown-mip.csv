@@ -1,0 +1,10 @@
+tool,onnx,vnnlib,formula_id,family,encoding,expected,result,verdict,seconds,wall_seconds,timeout,cex_check,cex_output,num_inputs,num_relus,num_clauses,sat_solver_seconds
+abcrown-mip,onnx/f0001.onnx,vnnlib/f0001.vnnlib,tseitin-odd-v36-s1-000,tseitin,compact,unsat,unsat,correct,538.910,538.875,600,,,54,252,144,0.0149
+abcrown-mip,onnx/f0002.onnx,vnnlib/f0002.vnnlib,random-n150-r5-s1-001,random,compact,unsat,unsat,correct,521.080,521.055,600,,,150,1050,750,0.0273
+abcrown-mip,onnx/f0003.onnx,vnnlib/f0003.vnnlib,random-n150-r4.26-s1-000,random,compact,unsat,unsat,correct,244.934,244.923,600,,,150,939,639,0.0603
+abcrown-mip,onnx/f0004.onnx,vnnlib/f0004.vnnlib,random-n150-r4.26-s1-002,random,compact,unsat,timeout,timeout,608.032,608.003,600,,,150,939,639,0.1079
+abcrown-mip,onnx/f0005.onnx,vnnlib/f0005.vnnlib,random-n150-r5-s1-000,random,compact,unsat,unsat,correct,428.934,428.913,600,,,150,1050,750,0.0218
+abcrown-mip,onnx/f0006.onnx,vnnlib/f0006.vnnlib,random-n150-r4.26-s1-001,random,compact,unsat,unsat,correct,483.084,483.061,600,,,150,939,639,0.0384
+abcrown-mip,onnx/f0007.onnx,vnnlib/f0007.vnnlib,ordering-n12,ordering,compact,unsat,timeout,timeout,610.009,609.981,600,,,66,584,452,0.0019
+abcrown-mip,onnx/f0008.onnx,vnnlib/f0008.vnnlib,tseitin-odd-v36-s1-001,tseitin,compact,unsat,unsat,correct,452.766,452.745,600,,,54,252,144,0.0488
+abcrown-mip,onnx/f0009.onnx,vnnlib/f0009.vnnlib,random-n150-r5-s1-002,random,compact,unsat,unsat,correct,280.536,280.522,600,,,150,1050,750,0.0192

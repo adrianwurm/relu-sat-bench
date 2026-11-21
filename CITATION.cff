@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this benchmark, please cite it as below."
+title: "relu-sat-bench: provably hard neural network verification instances with known answers, generated from SAT"
+type: software
+authors:
+  - given-names: Adrian
+    family-names: Wurm
+    affiliation: "Brandenburg University of Technology Cottbus-Senftenberg"
+    orcid: "https://orcid.org/0009-0007-0481-9223"
+version: 1.0.0
+license: MIT
+repository-code: "https://github.com/adrianwurm/relu-sat-bench"
+abstract: >-
+  A benchmark for neural network verifiers built from a reduction of SAT to ReLU network verification:
+  every instance is a ReLU network, the input box [0, 1]^n and a property that is violated if and only if
+  the underlying CNF formula is satisfiable. Answers are known from a SAT solver or from the construction,
+  and the difficulty follows the formula (random 3-SAT around the phase transition, planted solutions,
+  pigeonhole, Tseitin and ordering formulas). The repository contains the generator, the export to ONNX
+  and VNN-LIB, Docker setups for alpha,beta-CROWN and Marabou, the result files of all runs and their
+  evaluation. Code under MIT, benchmark data under CC BY 4.0.
+keywords:
+  - neural network verification
+  - benchmark
+  - SAT
+  - ReLU networks
+  - VNN-COMP

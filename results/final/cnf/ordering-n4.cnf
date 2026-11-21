@@ -1,0 +1,16 @@
+c relu-sat-bench instance ordering-n4
+c family ordering
+c params {"size": 4}
+p cnf 6 12
+-1 -4 2 0
+-2 4 1 0
+-1 -5 3 0
+-3 5 1 0
+-2 -6 3 0
+-3 6 2 0
+-4 -6 5 0
+-5 6 4 0
+-1 -2 -3 0
+1 -4 -5 0
+2 4 -6 0
+3 5 6 0

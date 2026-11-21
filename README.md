@@ -1,5 +1,7 @@
 # relu-sat-bench
 
+[![tests](https://github.com/adrianwurm/relu-sat-bench/actions/workflows/tests.yml/badge.svg)](https://github.com/adrianwurm/relu-sat-bench/actions/workflows/tests.yml)
+
 **Provably hard neural network verification instances with known answers, generated from SAT.**
 
 Every instance consists of a ReLU network `N`, the input box `[0, 1]^n` and the property
@@ -8,14 +10,15 @@ Every instance consists of a ReLU network `N`, the input box `[0, 1]^n` and the 
 is satisfiable**. The correct answer of every instance is therefore known (a SAT solver
 decides it), and the difficulty of the instance is inherited from the formula.
 
-> Status: work in progress. Steps 1 to 4 of 6 are done; the evaluation (step 5) has started.
+> Version 1.0.0: generator, export, verifier runs and evaluation are complete.
 
 - [x] Reduction SAT → ReLU verification, with exact-arithmetic tests
 - [x] Instance generator (random 3-SAT around the phase transition, structured formulas) with checked answers
 - [x] Export to ONNX + VNN-LIB (VNN-COMP format), every network checked with onnxruntime
 - [x] Runs with α,β-CROWN and Marabou in Docker: pilot, frozen benchmark set, final runs, scaling experiment
-- [ ] Evaluation: runtime, solved instances, wrong answers (tables and figures done, see [Results](#results))
-- [ ] Report
+- [x] Evaluation: solved instances, run times, wrong answers, other encodings, a ten times longer timeout
+  (see [Results](#results))
+- [x] Release: all result files in [`results/`](results/), tests on every push, citable releases
 
 ## The construction
 
@@ -199,7 +202,8 @@ instances need a (free academic) license file.
 
 ## Results
 
-213 instances, 60 s per instance, 4 CPU cores per tool. Full tables: [`report/summary.md`](report/summary.md).
+213 instances, 60 s per instance, 4 CPU cores per tool. Full tables: [`report/summary.md`](report/summary.md);
+the result files of all runs are in [`results/`](results/).
 
 | | solved | wrong | satisfiable solved | unsatisfiable solved |
 |---|---|---|---|---|
@@ -266,12 +270,13 @@ instances need a (free academic) license file.
   the `--threshold-in-network` variant works around it), and about 1 run in 25 in MIP mode
   hung before Gurobi started (repeated runs solved most of them; the tables count the first run).
 
-Reproduce the tables and figures from the result files:
+Reproduce the tables and figures from the result files in [`results/`](results/) (the commands for every
+other report are in [`results/README.md`](results/README.md); a test checks that all tables match):
 
 ```bash
 pip install -e ".[report]"          # matplotlib, for the figures
-python -m relu_sat_bench.evaluate --bench instances/final instances/final-shifted \
-    --extension instances/scaling-shifted --out report
+python -m relu_sat_bench.evaluate --bench results/final results/final-shifted \
+    --extension results/scaling-shifted --out report
 ```
 
 ### Same formulas, other encodings
@@ -349,6 +354,11 @@ wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report
 - **SoundnessBench** (VNN-COMP 2025, Zhou et al.) tests soundness with counterexamples hidden by
   training. In relu-sat-bench, whether a counterexample exists follows from the formula.
 
+## Citing
+
+If you use relu-sat-bench, please cite the software (GitHub's *Cite this repository* button gives the entry
+from [`CITATION.cff`](CITATION.cff)) and, for the construction, the CPAIOR 2024 paper below.
+
 ## References
 
 - A. Wurm. *Complexity of Reachability Problems in Neural Networks*. Reachability
@@ -378,6 +388,7 @@ Correctness does not rest on the assistant:
 ## License
 
 The code is released under the [MIT License](LICENSE). The benchmark data (the generated instances, the
-result files of the verifier runs, and the tables and figures in [`report/`](report/)) are released under
-[CC BY 4.0](LICENSE-DATA): free to use for any purpose, with credit. The verifiers (Marabou, α,β-CROWN) and
+formulas and result files in [`results/`](results/), and the tables and figures in [`report/`](report/))
+are released under [CC BY 4.0](LICENSE-DATA): free to use for any purpose, with credit. This does not cover
+the `sat_relu` formulas and networks, which are neither included nor ours. The verifiers (Marabou, α,β-CROWN) and
 Gurobi are not part of this repository: the Dockerfiles download them at build time, under their own licenses.

@@ -1,0 +1,32 @@
+# Runs the test suite on every push and pull request: the reduction against brute force, the generator,
+# the export (every network in onnxruntime), the runner and the evaluation, and the check that every table
+# in report/ matches the result files in results/. The verifiers themselves need Docker and a Gurobi
+# license and are not run here.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: python -m pip install -e ".[dev,report]"
+      - name: Test
+        run: python -m pytest -q
