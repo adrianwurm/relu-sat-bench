@@ -1,6 +1,7 @@
 # relu-sat-bench
 
 [![tests](https://github.com/adrianwurm/relu-sat-bench/actions/workflows/tests.yml/badge.svg)](https://github.com/adrianwurm/relu-sat-bench/actions/workflows/tests.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24417857.svg)](https://doi.org/10.5281/zenodo.24417857)
 
 **Provably hard neural network verification instances with known answers, generated from SAT.**
 
@@ -356,8 +357,11 @@ wrong answers in brackets; full tables in [`report/encodings-satrelu.md`](report
 
 ## Citing
 
-If you use relu-sat-bench, please cite the software (GitHub's *Cite this repository* button gives the entry
-from [`CITATION.cff`](CITATION.cff)) and, for the construction, the CPAIOR 2024 paper below.
+If you use relu-sat-bench, please cite the software and, for the construction, the CPAIOR 2024 paper below.
+Every release is archived on Zenodo:
+[10.5281/zenodo.24417857](https://doi.org/10.5281/zenodo.24417857) cites all versions (it resolves to the
+latest one), [10.5281/zenodo.24417858](https://doi.org/10.5281/zenodo.24417858) exactly version 1.0.0.
+GitHub's *Cite this repository* button gives the entry from [`CITATION.cff`](CITATION.cff).
 
 ## References
 

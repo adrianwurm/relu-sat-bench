@@ -8,6 +8,7 @@ authors:
     affiliation: "Brandenburg University of Technology Cottbus-Senftenberg"
     orcid: "https://orcid.org/0009-0007-0481-9223"
 version: 1.0.0
+doi: 10.5281/zenodo.24417857  # all versions; version 1.0.0: 10.5281/zenodo.24417858
 license: MIT
 repository-code: "https://github.com/adrianwurm/relu-sat-bench"
 abstract: >-
