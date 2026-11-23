@@ -19,7 +19,7 @@ pytest.importorskip("onnxruntime")
 pytest.importorskip("pysat")
 
 from relu_sat_bench import generate  # noqa: E402
-from relu_sat_bench.benchmark import VNNCOMP_MAX_TOTAL_SECONDS, build  # noqa: E402
+from relu_sat_bench.benchmark import VNNCOMP_MAX_TOTAL_SECONDS, build, build_parts, formula_ids  # noqa: E402
 from relu_sat_bench.cnf import CNF, iter_assignments  # noqa: E402
 from relu_sat_bench.export import (  # noqa: E402
     IR_VERSION,
@@ -335,7 +335,12 @@ def test_generate_properties_arguments():
     assert parse(["1", "n", "--sample", "--neurocodebench"]) == (1, Path("n"), False, "sample", "neurocodebench", False)
     assert parse(["1", "t", "--scaling", "--two-constraints"]) == (1, Path("t"), False, "scaling", "compact", True)
     assert parse(["1", "l", "--large", "--neurocodebench"]) == (1, Path("l"), False, "large", "neurocodebench", False)
+    assert parse(["1", "c", "--competition"]) == (1, Path("c"), False, "competition", "compact", False)
+    assert parse(["1", "c", "--competition", "--threshold-in-network"]) == (1, Path("c"), True, "competition",
+                                                                           "compact", False)
     for bad in ([], ["x"], ["1", "a", "b"], ["1", "--unknown"], ["1", "--pilot", "--scaling"],
+                ["1", "--competition", "--neurocodebench"], ["1", "--competition", "--two-constraints"],
+                ["1", "--competition", "--sample"],
                 ["1", "--sample", "--pilot"], ["1", "--large", "--scaling"], ["1", "--neurocodebench", "--threshold-in-network"],
                 ["1", "--two-constraints", "--threshold-in-network"], ["1", "--two-constraints", "--neurocodebench"]):
         assert parse(bad) is None
@@ -385,3 +390,50 @@ def test_ncb_set_shares_the_formulas_of_overlapping_sizes_with_the_frozen_set():
     assert len(common) >= 60
     assert all(frozen[name] == ncb[name] for name in common)
     assert script.parse_args(["1", "x", "--neurocodebench"]).set_name == "benchmark"
+
+
+# ------------------------------------------------------- the competition set (VNN-COMP 2027)
+
+
+def test_thinned_sets_keep_the_first_three_formulas_of_every_size():
+    """Decided 21 Nov 2026: 149 + 147 = 296 instances, 4.9 h at 60 s; the formulas are those of the full sets."""
+    script = load_script()
+    thin_spec, ncb = script.thin_spec(script.SPEC), script.thin_spec(script.NCB_SPEC)
+    assert (count_instances(thin_spec), count_instances(ncb)) == (149, 147)
+    total = sum(count_instances(spec) for spec, _ in script.competition_parts())
+    assert total == 296 and total * script.TIMEOUT <= VNNCOMP_MAX_TOTAL_SECONDS
+    for full, thinned in ((script.SPEC, thin_spec), (script.NCB_SPEC, ncb)):
+        kept = set(formula_ids(thinned, 1))
+        assert kept <= set(formula_ids(full, 1))
+        assert all(not re.search(r"-s1-\d+$", fid) or int(fid[-3:]) < 3 for fid in kept)
+        assert all(not re.search(r"-s1-00[0-2]$", fid) or fid in kept for fid in formula_ids(full, 1))
+    assert [enc for _, enc in script.competition_parts()] == ["compact", "neurocodebench"]
+
+
+def test_export_with_encodings_by_formula(tmp_path):
+    """Each listed formula in its own encodings, the others not at all; the threshold variant only for compact."""
+    make_formulas(tmp_path)
+    ids = sorted(generate.read_rows(tmp_path / "formulas.csv"))
+    chosen = {ids[0]: ["compact"], ids[1]: ["compact", "neurocodebench"]}
+    rows = export(tmp_path, verbose=False, names="neutral", threshold_in_network=True, encodings_by_formula=chosen)
+    assert sorted((r["formula_id"], r["encoding"]) for r in rows) == \
+        sorted((fid, enc) for fid, encs in chosen.items() for enc in encs)
+    for row in rows:
+        if row["encoding"] == "compact":
+            assert row["vnnlib_rhs"] == "0.0"                       # threshold moved into the network
+        else:
+            assert (row["vnnlib_rhs"], row["output_constraints"]) == ("1.0", 2)
+    with pytest.raises(ValueError):
+        export(tmp_path, verbose=False, encodings_by_formula={"no-such-formula": ["compact"]})
+
+
+def test_build_parts_exports_shared_formulas_in_both_encodings(tmp_path):
+    parts = [([["random", "--vars", "6", "--ratio", "4.26", "--count", "2"]], "compact"),
+             ([["random", "--vars", "6", "--ratio", "4.26", "--count", "1"], ["ordering", "--size", "3"]],
+              "neurocodebench")]
+    rows = build_parts(tmp_path, seed=7, parts=parts, timeout=10)
+    got = sorted((r["formula_id"], r["encoding"]) for r in rows)
+    shared = formula_ids(parts[1][0], 7)[0]
+    assert (shared, "compact") in got and (shared, "neurocodebench") in got
+    assert len(got) == 2 + 2 and len((tmp_path / "instances.csv").read_text().splitlines()) == 4
+

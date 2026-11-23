@@ -21,6 +21,9 @@ Options (after the seed and the folder):
   --two-constraints        unsafe set m - 1/2 <= Y_0 <= m: the same set, written as two constraints, which
                            alpha,beta-CROWN's MIP mode handles differently; compact only, not together with
                            --threshold-in-network
+  --competition            the set for VNN-COMP 2027: both benchmark sets in one folder, thinned to the first 3
+                           formulas of every size (SPEC in compact, NCB_SPEC in neurocodebench; 296 instances,
+                           4.9 h of timeouts); with --threshold-in-network the compact part gets that variant
 
 The size ladders in SPEC were calibrated once, on the pilot run of 31 Oct 2026 (seed 0, Marabou
 and alpha,beta-CROWN, 60 s per instance), so that every family ranges from "every tool solves it"
@@ -37,7 +40,7 @@ import sys
 from pathlib import Path
 from typing import NamedTuple
 
-from relu_sat_bench.benchmark import build
+from relu_sat_bench.benchmark import build, build_parts
 
 # One generator command line per entry (see `python -m relu_sat_bench.generate --help`).
 # Frozen on 31 Oct 2026. Reasons for each line: walkthrough step 4b, section 3.
@@ -101,6 +104,16 @@ def sample_spec(spec: list[list[str]]) -> list[list[str]]:
             for command in spec]
 
 
+def thin_spec(spec: list[list[str]], count: int = 3) -> list[list[str]]:
+    """``spec`` with at most ``count`` formulas per size: every ``--count`` above it lowered to ``count``.
+
+    As for :func:`sample_spec`, each formula is seeded by (seed, family, parameters, index), so the thinned set
+    contains exactly the formulas with index 000 to ``count - 1`` of the full set (decided 21 Nov 2026).
+    """
+    return [[(str(min(int(arg), count)) if i > 0 and command[i - 1] == "--count" else arg)
+             for i, arg in enumerate(command)] for command in spec]
+
+
 # The second benchmark set, in the neurocodebench encoding (frozen 20 Nov 2026, 209 instances, use with seed 1).
 # In that encoding Marabou and branch-and-bound fail on very small formulas, while alpha,beta-CROWN's MIP mode
 # gets to 250-300 variables (random, planted) and solves pigeonhole, Tseitin and ordering formulas far beyond
@@ -119,9 +132,16 @@ NCB_SPEC = [
     ["ordering", "--size", "4", "5", "6", "8", "10", "12", "14", "16", "18", "20"],
 ]
 
+# The set for VNN-COMP 2027 (decided 21 Nov 2026): both benchmark sets, thinned to the first 3 formulas per size,
+# each in its own encoding, in one folder. Formulas shared by the two sets appear in both encodings.
+def competition_parts() -> list[tuple[list[list[str]], str]]:
+    return [(thin_spec(SPEC), "compact"), (thin_spec(NCB_SPEC), "neurocodebench")]
+
+
 TIMEOUT = 60.0          # seconds per verifier run (instances.csv)
 ENCODINGS = ["compact"]
-SETS = {"--pilot": "pilot", "--scaling": "scaling", "--large": "large", "--sample": "sample"}
+SETS = {"--pilot": "pilot", "--scaling": "scaling", "--large": "large", "--sample": "sample",
+        "--competition": "competition"}
 OPTIONS = ("--threshold-in-network", "--neurocodebench", "--two-constraints", *SETS)
 
 
@@ -148,6 +168,8 @@ def parse_args(argv: list[str]) -> Arguments | None:
     two_constraints = "--two-constraints" in flags
     if len(sets) > 1 or sum((threshold_in_network, neurocodebench, two_constraints)) > 1:
         return None
+    if "competition" in sets and (neurocodebench or two_constraints):
+        return None
     out = Path(positional[1]) if len(positional) > 1 else Path("benchmark")
     return Arguments(int(positional[0]), out, threshold_in_network, sets[0] if sets else "benchmark",
                      "neurocodebench" if neurocodebench else ENCODINGS[0], two_constraints)
@@ -159,6 +181,10 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     seed, out, threshold_in_network, name, encoding, two_constraints = parsed
+    if name == "competition":
+        rows = build_parts(out, seed, competition_parts(), TIMEOUT, threshold_in_network=threshold_in_network)
+        print(f"benchmark written to {out} ({len(rows)} instances)")
+        return 0
     spec = {"benchmark": NCB_SPEC if encoding == "neurocodebench" else SPEC, "pilot": PILOT_SPEC,
             "scaling": SCALING_SPEC, "large": LARGE_SPEC, "sample": sample_spec(SPEC)}[name]
     rows = build(out, seed, spec, TIMEOUT, [encoding], threshold_in_network=threshold_in_network,

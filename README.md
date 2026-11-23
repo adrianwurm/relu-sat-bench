@@ -107,6 +107,7 @@ python generate_properties.py <seed> [output folder] --neurocodebench         # 
 python generate_properties.py <seed> [output folder] --threshold-in-network   # variant, see below
 python generate_properties.py <seed> [output folder] --scaling                # larger formulas, see below
 python generate_properties.py <seed> [output folder] --sample --neurocodebench  # comparison, see below
+python generate_properties.py <seed> [output folder] --competition    # the set for VNN-COMP 2027, see below
 ```
 
 This runs the generator lines listed in `SPEC` at the top of `generate_properties.py` (213 instances,
@@ -143,6 +144,12 @@ ends beyond MIP's limit: random formulas up to 250-400 variables, planted up to 
 Tseitin up to 300 variables, ordering up to n = 20. Ten of its formulas are beyond CaDiCaL within 60 s
 (pigeonhole h11-h14, Tseitin from 150 variables); their answers come from the construction. With seed 1, its
 73 formulas of sizes that also occur in `SPEC` are identical to those of the first set.
+
+**The competition set (`--competition`)** combines both sets in one folder for VNN-COMP 2027, thinned to the
+first 3 formulas of every size: the first set in the compact encoding (149 instances) and the second in the
+`sat_relu` encoding (147), 296 instances and 4.9 h of timeouts at 60 s (VNN-COMP allows 6 h). The thinned
+formulas are those with index 000-002 of the full sets, so with seed 1 their results are part of the runs
+reported below. With `--threshold-in-network` the compact part gets that variant.
 
 **`--scaling`** builds 65 larger formulas (random up to 200 variables, pigeonhole h8–h10, ordering n9–n12,
 Tseitin up to 60 variables) for a separate scaling experiment. It is not part of the benchmark set: MIP

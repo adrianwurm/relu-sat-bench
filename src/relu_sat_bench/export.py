@@ -52,7 +52,7 @@ import argparse
 import csv
 import random
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from fractions import Fraction
 from pathlib import Path
 
@@ -345,8 +345,13 @@ def export(
     name_seed: int = 0,
     threshold_in_network: bool = False,
     two_constraints: bool = False,
+    encodings_by_formula: Mapping[str, Sequence[str]] | None = None,
 ) -> list[dict]:
     """Export every formula with a known answer in ``folder/formulas.csv``.
+
+    ``encodings_by_formula``: instead of exporting every formula in ``encodings``, export each formula id listed
+    here in its own encodings, and no other formula (the competition set mixes two sets in two encodings). With
+    it, ``threshold_in_network`` applies to the single-output encodings only.
 
     ``threshold_in_network``: write the variant with the threshold moved into the network
     (output ``N(x) - (m - 1/2)``, unsafe set ``Y_0 >= 0``); see the module docstring.
@@ -357,7 +362,11 @@ def export(
     """
     import onnx
 
-    if (threshold_in_network or two_constraints) and NEUROCODEBENCH in encodings:
+    if encodings_by_formula is not None:
+        if two_constraints:
+            raise ValueError("two_constraints is not available with encodings_by_formula")
+        encodings = sorted({e for chosen in encodings_by_formula.values() for e in chosen})
+    elif (threshold_in_network or two_constraints) and NEUROCODEBENCH in encodings:
         raise ValueError("threshold_in_network and two_constraints apply only to the single-output encodings")
     if threshold_in_network and two_constraints:
         raise ValueError("choose threshold_in_network or two_constraints, not both")
@@ -369,6 +378,11 @@ def export(
         for old in (folder / sub).glob(f"*{suffix}"):
             old.unlink()
 
+    if encodings_by_formula is not None:
+        missing = set(encodings_by_formula) - set(formulas)
+        if missing:
+            raise ValueError(f"not in {FORMULAS_CSV}: {', '.join(sorted(missing))}")
+        formulas = {fid: row for fid, row in formulas.items() if encodings_by_formula.get(fid)}
     skipped = [fid for fid, row in formulas.items() if row["answer"] not in ("sat", "unsat")]
     base = file_names([fid for fid in formulas if fid not in skipped], names, name_seed)
     metadata = []
@@ -384,15 +398,17 @@ def export(
                 raise ExportCheckFailed(f"{row['solution_file']} does not satisfy {formula_id}")
 
         written = set()
-        for encoding in encodings:
+        chosen = encodings if encodings_by_formula is None else encodings_by_formula[formula_id]
+        for encoding in chosen:
             instance = reduce_cnf(cnf, encoding)
-            offset = instance.threshold if threshold_in_network else Fraction(0)
+            shift = threshold_in_network and encoding != NEUROCODEBENCH
+            offset = instance.threshold if shift else Fraction(0)
             vnnlib_file = Path("vnnlib") / vnnlib_name(name, encoding)
             if vnnlib_file not in written:
-                (folder / vnnlib_file).write_text(vnnlib_text(instance, name, threshold_in_network,
+                (folder / vnnlib_file).write_text(vnnlib_text(instance, name, shift,
                                                               two_constraints), encoding="utf-8")
                 written.add(vnnlib_file)
-            network = shift_output(instance.network, offset) if threshold_in_network else instance.network
+            network = shift_output(instance.network, offset) if shift else instance.network
             model_bytes = to_onnx(network, name=f"{name}-{encoding}").SerializeToString()
             check_onnx(model_bytes, instance, witness, offset=offset)
             onnx_file = Path("onnx") / onnx_name(name, encoding)

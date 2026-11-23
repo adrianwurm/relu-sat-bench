@@ -50,3 +50,42 @@ def build(
     if total > VNNCOMP_MAX_TOTAL_SECONDS:
         print(f"WARNING: the timeouts add up to {total / 3600:.1f} h; VNN-COMP allows at most 6 h")
     return rows
+
+
+def formula_ids(spec: Sequence[Sequence[str]], seed: int) -> list[str]:
+    """The ids of the formulas that ``spec`` generates with ``seed``, without solving them."""
+    parser = generate_module.build_parser()
+    return [name for command in spec
+            for name, _, _ in generate_module._instances(parser.parse_args(["--out", "unused", "--seed", str(seed),
+                                                                            *command]))]
+
+
+def build_parts(
+    out: Path,
+    seed: int,
+    parts: Sequence[tuple[Sequence[Sequence[str]], str]],
+    timeout: float,
+    solver_timeout: float = 60.0,
+    threshold_in_network: bool = False,
+) -> list[dict]:
+    """Build one benchmark folder from several (specification, encoding) parts.
+
+    Every formula of a part is exported in that part's encoding. A formula that occurs in two parts (the same
+    id: same family, parameters, index and seed) is generated once and exported in both encodings.
+    ``threshold_in_network`` applies to the compact parts only. Neutral file names as in :func:`build`.
+    """
+    out = Path(out)
+    chosen: dict[str, list[str]] = {}
+    for spec, encoding in parts:
+        for command in spec:
+            generate_module.main(["--out", str(out), "--seed", str(seed), "--timeout", str(solver_timeout), *command])
+        for formula_id in formula_ids(spec, seed):
+            if encoding not in chosen.setdefault(formula_id, []):
+                chosen[formula_id].append(encoding)
+    rows = export_module.export(out, timeout=timeout, names="neutral", name_seed=seed,
+                                threshold_in_network=threshold_in_network, encodings_by_formula=chosen)
+    total = sum(float(row["timeout"]) for row in rows)
+    if total > VNNCOMP_MAX_TOTAL_SECONDS:
+        print(f"WARNING: the timeouts add up to {total / 3600:.1f} h; VNN-COMP allows at most 6 h")
+    return rows
+
